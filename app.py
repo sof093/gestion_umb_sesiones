@@ -6,7 +6,7 @@ import re
 from datetime import datetime, date
 from werkzeug.utils import secure_filename
 import config
-
+from werkzeug.security import generate_password_hash, check_password_hash
 # ==================== FUNCIONES DE VALIDACIÓN ====================
 
 def validar_solo_letras(texto):
@@ -78,7 +78,7 @@ def index():
 @app.route('/login_admin', methods=['POST'])
 def login_admin():
     """Autenticación del administrador"""
-    numero_empleado = request.form.get('usuario')
+    email = request.form.get('usuario')  # Ahora es email, no número empleado
     password = request.form.get('password')
     
     conexion = config.conectar_db()
@@ -88,20 +88,25 @@ def login_admin():
     
     try:
         with conexion.cursor() as cursor:
-            sql = "SELECT * FROM administrador WHERE numero_empleado = %s AND password = %s"
-            cursor.execute(sql, (numero_empleado, password))
+            # CAMBIO IMPORTANTE: Buscar por email y NO comparar password aquí
+            sql = "SELECT * FROM administrador WHERE email = %s"
+            cursor.execute(sql, (email,))
             admin = cursor.fetchone()
             
             if admin:
-                session['admin_logged'] = True
-                session['admin_id'] = admin['id_control']
-                session['admin_nombre'] = admin['nombre_admin']
-                session['admin_numero'] = admin['numero_empleado']
-                flash(f'Bienvenido {admin["nombre_admin"]}', 'success')
-                return redirect(url_for('admin_dashboard'))
+                # VERIFICAR CONTRASEÑA CON HASH
+                if check_password_hash(admin['password'], password):
+                    session['admin_logged'] = True
+                    session['admin_id'] = admin['id_control']
+                    session['admin_nombre'] = admin['nombre_admin']
+                    session['admin_email'] = admin['email']  # Guardar email
+                    flash(f'Bienvenido {admin["nombre_admin"]}', 'success')
+                    return redirect(url_for('admin_dashboard'))
+                else:
+                    flash('Contraseña incorrecta', 'error')
             else:
                 flash('Credenciales incorrectas', 'error')
-                return redirect(url_for('index'))
+            return redirect(url_for('index'))
     except Exception as e:
         print(f"Error en login: {e}")
         flash('Error al iniciar sesión', 'error')
