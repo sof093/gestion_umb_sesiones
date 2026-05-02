@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Sesión | Administrador</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Mismos estilos que admin_nueva_sesion.html */
+        .form-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #1a3a2a;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input, select, textarea {
+            padding: 0.7rem;
+            border: 2px solid #e0e8e0;
+            border-radius: 8px;
+            font-family: inherit;
+        }
+        .btn-submit {
+            background: #ffc107;
+            color: #856404;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .btn-cancelar {
+            background: #6c757d;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-group.full-width {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">🎓 UES San José del Rincón</div>
+        <div class="navbar-right">
+            <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
+            <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
+            <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">🚪</a>
+        </div>
+    </nav>
+    
+    <div class="hero">
+        <h1 class="hero-title">Editar Sesión</h1>
+        <a href="{{ url_for('admin_sesiones') }}" class="btn-nueva" style="background: #6c757d;">← Volver</a>
+    </div>
+    
+    <main class="main">
+        <div class="form-container">
+            <form method="POST">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Sede *</label>
+                        <input type="text" name="sede" required value="{{ sesion.sede }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Fecha *</label>
+                        <input type="date" name="fecha" required value="{{ sesion.fecha }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nombre del Ponente *</label>
+                        <input type="text" name="nombre_ponente" required value="{{ sesion.nombre_ponente }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Apellido Paterno *</label>
+                        <input type="text" name="apellido_paterno" required value="{{ sesion.apellido_paterno }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Apellido Materno</label>
+                        <input type="text" name="apellido_materno" value="{{ sesion.apellido_materno or '' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tipo de Sesión *</label>
+                        <select name="id_tipo_sesion" required>
+                            {% for tipo in tipos_sesion %}
+                            <option value="{{ tipo.id_tipo_sesion }}" {% if tipo.id_tipo_sesion == sesion.id_tipo_sesion %}selected{% endif %}>
+                                {{ tipo.nombre_sesion }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Hora de Inicio *</label>
+                        <input type="time" name="hora_inicio" required value="{{ sesion.hora_inicio.strftime('%H:%M') if sesion.hora_inicio else '' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Hora de Fin *</label>
+                        <input type="time" name="hora_fin" required value="{{ sesion.hora_fin.strftime('%H:%M') if sesion.hora_fin else '' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Cupo para Audiencia *</label>
+                        <input type="number" name="cupo_audiencia" required value="{{ sesion.cupo_audiencia }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Escenario *</label>
+                        <select name="id_escenario" required>
+                            {% for escenario in escenarios %}
+                            <option value="{{ escenario.id_escenario }}" {% if escenario.id_escenario == sesion.id_escenario %}selected{% endif %}>
+                                {{ escenario.nombre_escenario }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Carrera Asociada</label>
+                        <select name="id_carrera">
+                            <option value="">General</option>
+                            {% for carrera in carreras %}
+                            <option value="{{ carrera.id_carrera }}" {% if carrera.id_carrera == sesion.id_carrera %}selected{% endif %}>
+                                {{ carrera.nombre_carrera }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Procedencia / Institución</label>
+                        <input type="text" name="procedencia_institucion_independiente" value="{{ sesion.procedencia_institucion_independiente or '' }}">
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label>Perfil Profesional</label>
+                        <textarea name="perfil_profesional">{{ sesion.perfil_profesional or '' }}</textarea>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label>Biografía</label>
+                        <textarea name="biografia">{{ sesion.biografia or '' }}</textarea>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label>Descripción de Materiales</label>
+                        <textarea name="descripcion_materiales">{{ sesion.descripcion_materiales or '' }}</textarea>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn-submit">✏️ Actualizar Sesión</button>
+                    <a href="{{ url_for('admin_sesiones') }}" class="btn-cancelar">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </main>
+    
+    <footer>
+        <strong>© 2026 UES San José del Rincón</strong><br>
+        Gestión de la jornada académica y cultural<br>
+        Todos los derechos reservados
+    </footer>
+</body>
+</html>

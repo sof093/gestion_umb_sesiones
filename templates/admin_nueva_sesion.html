@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nueva Sesión — UES San José del Rincón</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style_sesiones.css">
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar">
+  <span class="navbar-brand">UES San José del Rincón</span>
+  <div class="navbar-right">
+    <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
+    <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
+    <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">cerrar sesión</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1 class="hero-title">Registrar Nueva Sesión</h1>
+  <div>
+    <a href="{{ url_for('admin_sesiones') }}" class="btn-nueva btn-volver" id="btnVolverListado">← Volver a sesiones</a>
+  </div>
+</div>
+
+<main class="main">
+  <div class="form-container">
+    <div class="form-header">
+      <h2>Complete los datos de la sesión</h2>
+    </div>
+    
+    <form method="POST" enctype="multipart/form-data" class="form-body" id="sesionForm">
+      <div class="form-row">
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" name="fecha" id="fecha" required>
+        <small style="color: #7a9a82;"></small>
+        <div class="error-message" id="error-fecha">La fecha no puede ser anterior al día de hoy</div>
+        </div>
+        
+        <div class="form-group">
+          <label>Sede</label>
+          <select name="sede" id="sede" required>
+            <option value="">Seleccione una sede</option>
+            <option value="Unidad de estudio superiores">Universidad Mexiquense del Bicentenario</option>
+            <option value="San José del Rincón">Municipalidad de San José del Rincón</option>
+          </select>
+          <div class="error-message" id="error-sede"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Nombre de la sesión</label>
+        <input type="text" name="nombre_de_sesion" id="nombre_de_sesion" placeholder="Ej. 'Innovación educativa', 'Tendencias digitales 2024'..." required>
+        <div class="error-message" id="error-nombre_de_sesion"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Nombre del ponente</label>
+        <input type="text" name="nombre_ponente" id="nombre_ponente" placeholder="Nombre(s)" required>
+        <div class="error-message" id="error-nombre_ponente"></div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Apellido Paterno</label>
+          <input type="text" name="apellido_paterno" id="apellido_paterno" placeholder="Apellido paterno" required>
+          <div class="error-message" id="error-apellido_paterno"></div>
+        </div>
+        <div class="form-group">
+          <label>Apellido Materno</label>
+          <input type="text" name="apellido_materno" id="apellido_materno" placeholder="Apellido materno">
+          <div class="error-message" id="error-apellido_materno"></div>
+        </div>
+      </div>
+
+      <!-- Procedencia (Institución o Independiente) -->
+      <div class="form-group">
+        <label>¿Proviene de una institución o es independiente? </label>
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="tipo_procedencia" value="institucion" required> Institución
+          </label>
+          <label>
+            <input type="radio" name="tipo_procedencia" value="independiente" required> Independiente
+          </label>
+        </div>
+        <div class="error-message" id="error-tipo_procedencia"></div>
+      </div>
+
+      <!-- Campo condicional: Nombre de la institución -->
+      <div id="campo_institucion" class="form-group" style="display: none;">
+        <label>Nombre de la institución</label>
+        <input type="text" name="procedencia_institucion_independiente" id="nombre_institucion" placeholder="Ej. UNAM, IPN, Universidad Autónoma...">
+        <div class="error-message" id="error-nombre_institucion"></div>
+      </div>
+
+      <!-- ¿Requiere materiales? -->
+      <div class="form-group">
+        <label>¿Requiere materiales para la sesión?</label>
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="requiere_materiales" value="si" required> Sí
+          </label>
+          <label>
+            <input type="radio" name="requiere_materiales" value="no" required> No
+          </label>
+        </div>
+        <div class="error-message" id="error-requiere_materiales"></div>
+      </div>
+
+      <!-- Campo condicional: Descripción de materiales -->
+      <div id="campo_materiales" class="form-group" style="display: none;">
+        <label>Describe los materiales necesarios </label>
+        <textarea name="descripcion_materiales" id="descripcion_materiales" rows="2" placeholder="Ej. Proyector, computadora, materiales de oficina, equipo especial..."></textarea>
+        <div class="error-message" id="error-descripcion_materiales">La descripción de materiales es requerida</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Hora inicio</label>
+          <input type="time" name="hora_inicio" id="hora_inicio" required>
+          <div class="error-message" id="error-hora_inicio"></div>
+        </div>
+        <div class="form-group">
+          <label>Hora fin</label>
+          <input type="time" name="hora_fin" id="hora_fin" required>
+          <div class="error-message" id="error-hora_fin"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de sesión</label>
+        <select name="id_tipo_sesion" id="id_tipo_sesion" required>
+          <option value="">Seleccione un tipo</option>
+          {% for tipo in tipos_sesion %}
+            <option value="{{ tipo.id_tipo_sesion }}">{{ tipo.nombre_sesion }}</option>
+          {% endfor %}
+        </select>
+        <div class="error-message" id="error-id_tipo_sesion">Seleccione un tipo de sesión</div>
+      </div>
+
+      <div class="form-group">
+        <label>Escenario</label>
+        <select name="id_escenario" id="id_escenario" required>
+          <option value="">Seleccione un escenario</option>
+          {% for escenario in escenarios %}
+            <option value="{{ escenario.id_escenario }}">{{ escenario.nombre_escenario }}</option>
+          {% endfor %}
+        </select>
+        <div class="error-message" id="error-id_escenario">Seleccione un escenario</div>
+      </div>
+
+      <div class="form-group">
+        <label>Carrera asociada</label>
+        <select name="id_carrera" id="id_carrera">
+          <option value="">General (Todas las carreras)</option>
+          {% for carrera in carreras %}
+            <option value="{{ carrera.id_carrera }}">{{ carrera.nombre_carrera }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Cupo máximo</label>
+        <input type="number" name="cupo_audiencia" id="cupo_audiencia" placeholder="Número de personas" value="50">
+        <div class="error-message" id="error-cupo_audiencia"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Perfil profesional</label>
+        <textarea name="perfil_profesional" id="perfil_profesional" rows="2" placeholder="Breve descripción del perfil del ponente"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Biografía</label>
+        <textarea name="biografia" id="biografia" rows="3" placeholder="Biografía completa del ponente"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Fotografía del ponente</label>
+        <input type="file" name="fotografia" id="fotografia" accept="image/*">
+        <small>Formatos: JPG, PNG, GIF (max 16MB)</small>
+        <div class="error-message" id="error-fotografia"></div>
+      </div>
+
+      <!-- Logo institucional: Solo visible si selecciona "institución" -->
+      <div id="campo_logo" class="form-group" style="display: none;">
+        <label>Logo institucional (opcional)</label>
+        <input type="file" name="logo" id="logo" accept="image/*">
+        <small>Logo de la institución (puede agregarse después si no lo tiene ahora)</small>
+        <div class="error-message" id="error-logo"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancelar" id="btnCancelar">Cancelar</button>
+        <button type="submit" class="btn-guardar">Guardar sesión</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<footer>
+  <strong>© 2026 UES San José del Rincón</strong><br>
+  Gestión de la jornada académica y cultural<br>
+  Todos los derechos reservados.
+</footer>
+
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+<script src="/static/js/js.js"></script>
+
+</body>
+</html>

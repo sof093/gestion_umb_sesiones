@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Sesiones — UES San José del Rincón</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style_sesiones.css">
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar">
+  <span class="navbar-brand">UES San José del Rincón</span>
+  <div class="navbar-right">
+    <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
+    <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
+    <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">Cerrar sesión</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1 class="hero-title">Gestión de sesiones</h1>
+  <a href="{{ url_for('nueva_sesion') }}" class="btn-nueva">+ Nueva sesión</a>
+</div>
+
+<main class="main">
+  <!-- CONTROLES DE BÚSQUEDA Y FILTROS -->
+  <div class="controls">
+    <div class="mostrar-group">
+      <span>Mostrar</span>
+      <select class="select-mostrar" id="selectMostrar">
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+      <span>sesiones</span>
+    </div>
+
+    <div class="search-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+      </svg>
+      <input type="text" id="buscarInput" class="search-input" placeholder="Buscar por conferencista">
+    </div>
+
+    <select class="select-filtro" id="selectFiltroTipo">
+    <option value="">Todos los tipos de sesión</option>
+    <optgroup label="Tipo de sesión">
+      <option value="Conferencia magistral">Conferencia magistral</option>
+      <option value="Conferencia">Conferencia</option>
+      <option value="Taller">Taller</option>
+      <option value="Exhibición">Exhibición</option>
+      <option value="Inauguración">Inauguración</option>
+      <option value="Cierre del evento">Cierre del evento</option>
+    </optgroup>
+  </select>
+
+  <select class="select-filtro" id="selectFiltroEscenario">
+    <option value="">Todos los escenarios</option>
+    <optgroup label="Escenario">
+      <option value="Aula magna">Aula magna</option>
+      <option value="Laboratorio de cómputo">Laboratorio de cómputo</option>
+      <option value="Aula #">Aula #</option>
+      <option value="Plazoleta institucional">Plazoleta institucional</option>
+      <option value="Áreas verdes">Áreas verdes</option>
+    </optgroup>
+  </select>
+  
+  </div>
+
+  <div class="tabla-wrap">
+    <table id="tablaSesiones">
+      <thead>
+        <tr>
+          <th>Sesión</th>
+          <th>Conferencista</th>
+          <th>Tipo</th>
+          <th>Escenario</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaCuerpo">
+        <tr>
+          <td colspan="5" style="text-align: center;">Cargando sesiones...</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="paginacion-wrap" id="paginacionWrap"></div>
+  </div>
+</main>
+
+<footer>
+  <strong>© 2026 UES San José del Rincón</strong><br>
+  Gestión de la jornada académica y cultural<br>
+  Todos los derechos reservados.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script src="/static/js/admin_sesiones.js"></script>
+</body>
+</html>
