@@ -481,15 +481,24 @@ def admin_editar_sesion(id):
     if request.method == 'POST':
         try:
             # Obtener datos del formulario
+            sede = request.form.get('sede')
+            nombre_de_sesion = request.form.get('nombre_de_sesion')  # ← AGREGAR ESTO
+            fecha = request.form.get('fecha')
             nombre_ponente = request.form.get('nombre_ponente')
             apellido_paterno = request.form.get('apellido_paterno')
             apellido_materno = request.form.get('apellido_materno')
-            cupo_audiencia = request.form.get('cupo_audiencia')
+            perfil_profesional = request.form.get('perfil_profesional')
+            biografia = request.form.get('biografia')
+            id_tipo_sesion = request.form.get('id_tipo_sesion')
             hora_inicio = request.form.get('hora_inicio')
             hora_fin = request.form.get('hora_fin')
-            fecha = request.form.get('fecha')
+            cupo_audiencia = request.form.get('cupo_audiencia')
+            id_carrera = request.form.get('id_carrera') or None
+            id_escenario = request.form.get('id_escenario')
+            descripcion_materiales = request.form.get('descripcion_materiales')
+            procedencia = request.form.get('procedencia_institucion_independiente')
             
-            # Validaciones de backend también en edición
+            # Validaciones
             if not validar_solo_letras(nombre_ponente):
                 flash('El nombre del ponente solo puede contener letras', 'error')
                 return redirect(url_for('admin_editar_sesion', id=id))
@@ -514,29 +523,54 @@ def admin_editar_sesion(id):
                 flash('La fecha no puede ser anterior al día de hoy', 'error')
                 return redirect(url_for('admin_editar_sesion', id=id))
             
-            # Actualizar sesión
+            # Procesar fotografía si se subió nueva
+            fotografia = request.files.get('fotografia')
+            fotografia_path = None
+            if fotografia and fotografia.filename and allowed_file(fotografia.filename):
+                ext = fotografia.filename.rsplit('.', 1)[1].lower()
+                filename = f"sesion_{uuid.uuid4().hex}.{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                fotografia.save(filepath)
+                fotografia_path = f"uploads/sesiones/{filename}"
+            
+            # Procesar logo si se subió nuevo
+            logo = request.files.get('logo')
+            logo_path = None
+            if logo and logo.filename and allowed_file(logo.filename):
+                ext = logo.filename.rsplit('.', 1)[1].lower()
+                filename = f"logo_{uuid.uuid4().hex}.{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                logo.save(filepath)
+                logo_path = f"uploads/sesiones/{filename}"
+            
+            # Construir UPDATE dinámico
             with conexion.cursor() as cursor:
                 sql = """
                     UPDATE sesion SET
-                        sede = %s, fecha = %s, nombre_ponente = %s,
-                        apellido_paterno = %s, apellido_materno = %s,
-                        perfil_profesional = %s, biografia = %s,
-                        id_tipo_sesion = %s, hora_inicio = %s, hora_fin = %s,
-                        cupo_audiencia = %s, descripcion_materiales = %s,
-                        id_carrera = %s, id_escenario = %s,
+                        sede = %s, nombre_de_sesion = %s, fecha = %s,
+                        nombre_ponente = %s, apellido_paterno = %s, apellido_materno = %s,
+                        perfil_profesional = %s, biografia = %s, id_tipo_sesion = %s,
+                        hora_inicio = %s, hora_fin = %s, cupo_audiencia = %s,
+                        descripcion_materiales = %s, id_carrera = %s, id_escenario = %s,
                         procedencia_institucion_independiente = %s
-                    WHERE id_sesion = %s
                 """
-                cursor.execute(sql, (
-                    request.form.get('sede'), request.form.get('fecha'),
-                    request.form.get('nombre_ponente'), request.form.get('apellido_paterno'),
-                    request.form.get('apellido_materno'), request.form.get('perfil_profesional'),
-                    request.form.get('biografia'), request.form.get('id_tipo_sesion'),
-                    request.form.get('hora_inicio'), request.form.get('hora_fin'),
-                    request.form.get('cupo_audiencia'), request.form.get('descripcion_materiales'),
-                    request.form.get('id_carrera') or None, request.form.get('id_escenario'),
-                    request.form.get('procedencia_institucion_independiente'), id
-                ))
+                params = [sede, nombre_de_sesion, fecha, nombre_ponente, apellido_paterno,
+                          apellido_materno, perfil_profesional, biografia, id_tipo_sesion,
+                          hora_inicio, hora_fin, cupo_audiencia, descripcion_materiales,
+                          id_carrera, id_escenario, procedencia]
+                
+                # Agregar campos opcionales si hay archivos nuevos
+                if fotografia_path:
+                    sql += ", fotografia = %s"
+                    params.append(fotografia_path)
+                if logo_path:
+                    sql += ", logo = %s"
+                    params.append(logo_path)
+                
+                sql += " WHERE id_sesion = %s"
+                params.append(id)
+                
+                cursor.execute(sql, params)
                 conexion.commit()
                 
             flash('Sesión actualizada exitosamente', 'success')
@@ -544,6 +578,7 @@ def admin_editar_sesion(id):
             
         except Exception as e:
             conexion.rollback()
+            print(f"Error al actualizar: {e}")
             flash(f'Error al actualizar: {str(e)}', 'error')
         finally:
             conexion.close()
@@ -553,6 +588,26 @@ def admin_editar_sesion(id):
         with conexion.cursor() as cursor:
             cursor.execute("SELECT * FROM sesion WHERE id_sesion = %s", (id,))
             sesion = cursor.fetchone()
+            
+            # Convertir fecha para el input date
+            if sesion and sesion.get('fecha'):
+                sesion['fecha_str'] = sesion['fecha'].strftime('%Y-%m-%d')
+            
+            # Convertir horas
+            def convertir_hora(valor):
+                if valor is None:
+                    return None
+                if hasattr(valor, 'strftime'):
+                    return valor.strftime('%H:%M')
+                elif hasattr(valor, 'seconds'):
+                    horas = valor.seconds // 3600
+                    minutos = (valor.seconds % 3600) // 60
+                    return f"{horas:02d}:{minutos:02d}"
+                return str(valor)[:5] if valor else None
+            
+            if sesion:
+                sesion['hora_inicio_str'] = convertir_hora(sesion.get('hora_inicio'))
+                sesion['hora_fin_str'] = convertir_hora(sesion.get('hora_fin'))
             
             if not sesion:
                 flash('Sesión no encontrada', 'error')
@@ -566,6 +621,10 @@ def admin_editar_sesion(id):
             
             cursor.execute("SELECT id_carrera, nombre_carrera FROM carreras")
             carreras = cursor.fetchall()
+    except Exception as e:
+        print(f"Error: {e}")
+        flash('Error al cargar la sesión', 'error')
+        return redirect(url_for('admin_sesiones'))
     finally:
         conexion.close()
     

@@ -3,194 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Sesión | Administrador</title>
+    <title>Editar Sesión — UES San José del Rincón</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        /* Mismos estilos que admin_nueva_sesion.html */
-        .form-container {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-        .form-group.full-width {
-            grid-column: span 2;
-        }
-        .form-group label {
-            font-weight: 600;
-            color: #1a3a2a;
-            margin-bottom: 0.5rem;
-        }
-        .form-group input, select, textarea {
-            padding: 0.7rem;
-            border: 2px solid #e0e8e0;
-            border-radius: 8px;
-            font-family: inherit;
-        }
-        .btn-submit {
-            background: #ffc107;
-            color: #856404;
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-        .btn-cancelar {
-            background: #6c757d;
-            color: white;
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-block;
-        }
-        @media (max-width: 768px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-            .form-group.full-width {
-                grid-column: span 1;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/admin_nueva-editar_sesion.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="navbar-brand">🎓 UES San José del Rincón</div>
-        <div class="navbar-right">
-            <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
-            <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
-            <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">🚪</a>
-        </div>
-    </nav>
-    
-    <div class="hero">
-        <h1 class="hero-title">Editar Sesión</h1>
-        <a href="{{ url_for('admin_sesiones') }}" class="btn-nueva" style="background: #6c757d;">← Volver</a>
+
+<nav class="navbar">
+    <span class="navbar-brand">UES San José del Rincón</span>
+    <div class="navbar-right">
+        <button class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+        <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
+        <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
+        <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">cerrar sesión</a>
     </div>
-    
-    <main class="main">
-        <div class="form-container">
-            <form method="POST">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Sede *</label>
-                        <input type="text" name="sede" required value="{{ sesion.sede }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Fecha *</label>
-                        <input type="date" name="fecha" required value="{{ sesion.fecha }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Nombre del Ponente *</label>
-                        <input type="text" name="nombre_ponente" required value="{{ sesion.nombre_ponente }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Apellido Paterno *</label>
-                        <input type="text" name="apellido_paterno" required value="{{ sesion.apellido_paterno }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Apellido Materno</label>
-                        <input type="text" name="apellido_materno" value="{{ sesion.apellido_materno or '' }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Tipo de Sesión *</label>
-                        <select name="id_tipo_sesion" required>
-                            {% for tipo in tipos_sesion %}
-                            <option value="{{ tipo.id_tipo_sesion }}" {% if tipo.id_tipo_sesion == sesion.id_tipo_sesion %}selected{% endif %}>
-                                {{ tipo.nombre_sesion }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Hora de Inicio *</label>
-                        <input type="time" name="hora_inicio" required value="{{ sesion.hora_inicio.strftime('%H:%M') if sesion.hora_inicio else '' }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Hora de Fin *</label>
-                        <input type="time" name="hora_fin" required value="{{ sesion.hora_fin.strftime('%H:%M') if sesion.hora_fin else '' }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Cupo para Audiencia *</label>
-                        <input type="number" name="cupo_audiencia" required value="{{ sesion.cupo_audiencia }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Escenario *</label>
-                        <select name="id_escenario" required>
-                            {% for escenario in escenarios %}
-                            <option value="{{ escenario.id_escenario }}" {% if escenario.id_escenario == sesion.id_escenario %}selected{% endif %}>
-                                {{ escenario.nombre_escenario }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Carrera Asociada</label>
-                        <select name="id_carrera">
-                            <option value="">General</option>
-                            {% for carrera in carreras %}
-                            <option value="{{ carrera.id_carrera }}" {% if carrera.id_carrera == sesion.id_carrera %}selected{% endif %}>
-                                {{ carrera.nombre_carrera }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Procedencia / Institución</label>
-                        <input type="text" name="procedencia_institucion_independiente" value="{{ sesion.procedencia_institucion_independiente or '' }}">
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label>Perfil Profesional</label>
-                        <textarea name="perfil_profesional">{{ sesion.perfil_profesional or '' }}</textarea>
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label>Biografía</label>
-                        <textarea name="biografia">{{ sesion.biografia or '' }}</textarea>
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label>Descripción de Materiales</label>
-                        <textarea name="descripcion_materiales">{{ sesion.descripcion_materiales or '' }}</textarea>
-                    </div>
+</nav>
+
+<div class="hero">
+    <h1 class="hero-title">Editar Sesión</h1>
+    <div>
+        <a href="{{ url_for('admin_sesiones') }}" class="btn-nueva btn-volver" id="btnVolverListado">← Volver a sesiones</a>
+    </div>
+</div>
+
+<main class="main">
+    <div class="form-container">
+        <div class="form-header">
+            <h2>Editar datos de la sesión</h2>
+        </div>
+        
+        <form method="POST" enctype="multipart/form-data" class="form-body" id="sesionForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <input type="date" name="fecha" id="fecha" required value="{{ sesion.fecha_str or sesion.fecha }}">
+                    <div class="error-message" id="error-fecha">La fecha no puede ser anterior al día de hoy</div>
                 </div>
                 
-                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                    <button type="submit" class="btn-submit">✏️ Actualizar Sesión</button>
-                    <a href="{{ url_for('admin_sesiones') }}" class="btn-cancelar">Cancelar</a>
+                <div class="form-group">
+                    <label>Sede</label>
+                    <select name="sede" id="sede" required>
+                        <option value="">Seleccione una sede</option>
+                        <option value="Unidad de estudio superiores" {% if sesion.sede == 'Unidad de estudio superiores' %}selected{% endif %}>Universidad Mexiquense del Bicentenario</option>
+                        <option value="San José del Rincón" {% if sesion.sede == 'San José del Rincón' %}selected{% endif %}>Municipalidad de San José del Rincón</option>
+                    </select>
+                    <div class="error-message" id="error-sede"></div>
                 </div>
-            </form>
-        </div>
-    </main>
-    
-    <footer>
-        <strong>© 2026 UES San José del Rincón</strong><br>
-        Gestión de la jornada académica y cultural<br>
-        Todos los derechos reservados
-    </footer>
+            </div>
+            
+            <div class="form-group">
+                <label>Nombre de la sesión</label>
+                <input type="text" name="nombre_de_sesion" id="nombre_de_sesion" required value="{{ sesion.nombre_de_sesion }}">
+                <div class="error-message" id="error-nombre_de_sesion"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Nombre del ponente</label>
+                <input type="text" name="nombre_ponente" id="nombre_ponente" required value="{{ sesion.nombre_ponente }}">
+                <div class="error-message" id="error-nombre_ponente"></div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Apellido Paterno</label>
+                    <input type="text" name="apellido_paterno" id="apellido_paterno" required value="{{ sesion.apellido_paterno }}">
+                    <div class="error-message" id="error-apellido_paterno"></div>
+                </div>
+                <div class="form-group">
+                    <label>Apellido Materno</label>
+                    <input type="text" name="apellido_materno" id="apellido_materno" value="{{ sesion.apellido_materno or '' }}">
+                    <div class="error-message" id="error-apellido_materno"></div>
+                </div>
+            </div>
+
+            <!-- Procedencia -->
+            <div class="form-group">
+                <label>¿Proviene de una institución o es independiente?</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="tipo_procedencia" value="institucion" {% if sesion.procedencia_institucion_independiente %}checked{% endif %}> Institución
+                    </label>
+                    <label>
+                        <input type="radio" name="tipo_procedencia" value="independiente" {% if not sesion.procedencia_institucion_independiente %}checked{% endif %}> Independiente
+                    </label>
+                </div>
+                <div class="error-message" id="error-tipo_procedencia"></div>
+            </div>
+
+            <div id="campo_institucion" class="form-group" {% if not sesion.procedencia_institucion_independiente %}style="display: none;"{% endif %}>
+                <label>Nombre de la institución</label>
+                <input type="text" name="procedencia_institucion_independiente" id="nombre_institucion" value="{{ sesion.procedencia_institucion_independiente or '' }}">
+                <div class="error-message" id="error-nombre_institucion"></div>
+            </div>
+
+            <!-- Materiales -->
+            <div class="form-group">
+                <label>¿Requiere materiales para la sesión?</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="requiere_materiales" value="si" {% if sesion.descripcion_materiales %}checked{% endif %}> Sí
+                    </label>
+                    <label>
+                        <input type="radio" name="requiere_materiales" value="no" {% if not sesion.descripcion_materiales %}checked{% endif %}> No
+                    </label>
+                </div>
+                <div class="error-message" id="error-requiere_materiales"></div>
+            </div>
+
+            <div id="campo_materiales" class="form-group" {% if not sesion.descripcion_materiales %}style="display: none;"{% endif %}>
+                <label>Describe los materiales necesarios</label>
+                <textarea name="descripcion_materiales" id="descripcion_materiales" rows="2">{{ sesion.descripcion_materiales or '' }}</textarea>
+                <div class="error-message" id="error-descripcion_materiales">La descripción de materiales es requerida</div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Hora inicio</label>
+                    <input type="time" name="hora_inicio" id="hora_inicio" required value="{{ sesion.hora_inicio_str or sesion.hora_inicio }}">
+                    <div class="error-message" id="error-hora_inicio"></div>
+                </div>
+                <div class="form-group">
+                    <label>Hora fin</label>
+                    <input type="time" name="hora_fin" id="hora_fin" required value="{{ sesion.hora_fin_str or sesion.hora_fin }}">
+                    <div class="error-message" id="error-hora_fin"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tipo de sesión</label>
+                <select name="id_tipo_sesion" id="id_tipo_sesion" required>
+                    <option value="">Seleccione un tipo</option>
+                    {% for tipo in tipos_sesion %}
+                        <option value="{{ tipo.id_tipo_sesion }}" {% if tipo.id_tipo_sesion == sesion.id_tipo_sesion %}selected{% endif %}>{{ tipo.nombre_sesion }}</option>
+                    {% endfor %}
+                </select>
+                <div class="error-message" id="error-id_tipo_sesion">Seleccione un tipo de sesión</div>
+            </div>
+
+            <div class="form-group">
+                <label>Escenario</label>
+                <select name="id_escenario" id="id_escenario" required>
+                    <option value="">Seleccione un escenario</option>
+                    {% for escenario in escenarios %}
+                        <option value="{{ escenario.id_escenario }}" {% if escenario.id_escenario == sesion.id_escenario %}selected{% endif %}>{{ escenario.nombre_escenario }}</option>
+                    {% endfor %}
+                </select>
+                <div class="error-message" id="error-id_escenario">Seleccione un escenario</div>
+            </div>
+
+            <div class="form-group">
+                <label>Carrera asociada</label>
+                <select name="id_carrera" id="id_carrera">
+                    <option value="">General (Todas las carreras)</option>
+                    {% for carrera in carreras %}
+                        <option value="{{ carrera.id_carrera }}" {% if carrera.id_carrera == sesion.id_carrera %}selected{% endif %}>{{ carrera.nombre_carrera }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Cupo máximo</label>
+                <input type="number" name="cupo_audiencia" id="cupo_audiencia" value="{{ sesion.cupo_audiencia or 50 }}">
+                <div class="error-message" id="error-cupo_audiencia"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Perfil profesional</label>
+                <textarea name="perfil_profesional" id="perfil_profesional" rows="2">{{ sesion.perfil_profesional or '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Biografía</label>
+                <textarea name="biografia" id="biografia" rows="3">{{ sesion.biografia or '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Fotografía del ponente</label>
+                <input type="file" name="fotografia" id="fotografia" accept="image/*">
+                <small>Formatos: JPG, PNG, GIF (max 16MB)</small>
+                {% if sesion.fotografia %}
+                    <small>Archivo actual: {{ sesion.fotografia.split('/')[-1] }}</small>
+                {% endif %}
+                <div class="error-message" id="error-fotografia"></div>
+            </div>
+
+            <div id="campo_logo" class="form-group" {% if not sesion.procedencia_institucion_independiente %}style="display: none;"{% endif %}>
+                <label>Logo institucional (opcional)</label>
+                <input type="file" name="logo" id="logo" accept="image/*">
+                <small>Logo de la institución</small>
+                {% if sesion.logo %}
+                    <small>Archivo actual: {{ sesion.logo.split('/')[-1] }}</small>
+                {% endif %}
+                <div class="error-message" id="error-logo"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-cancelar" id="btnCancelar">Cancelar</button>
+                <button type="submit" class="btn-guardar">Actualizar sesión</button>
+            </div>
+        </form>
+    </div>
+</main>
+
+<footer>
+    <strong>© 2026 UES San José del Rincón</strong><br>
+    Gestión de la jornada académica y cultural<br>
+    Todos los derechos reservados.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/static/js/global.js"></script>
+<script src="/static/js/admin_nueva_editar_sesion.js"></script>
 </body>
 </html>

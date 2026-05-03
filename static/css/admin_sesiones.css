@@ -135,22 +135,127 @@ tbody tr:hover { background: #f0f6f1; }
 .badge-inauguracion { background: #fdebd0; color: #d35400; padding: 4px 12px; border-radius: 20px; }
 .badge-cierre { background: #e8d5f0; color: #6a1b9a; padding: 4px 12px; border-radius: 20px; }
 
-/* Botones de acción */
-.acciones-cell {
+/* ============================================
+   BOTONES DE ACCIÓN - ESTILO INSTITUCIONAL
+   ============================================ */
+
+/* Contenedor de acciones */
+.acciones-cell,
+td.acciones,
+.acciones {
     display: flex;
-    gap: .5rem;
+    gap: 10px;
     justify-content: center;
+    align-items: center;
+    white-space: nowrap;
 }
 
-.btn-ver, .btn-editar, .btn-eliminar {
-    width: 34px; height: 34px;
-    border-radius: 7px;
+/* Base de todos los botones de acción */
+.btn-icon-action,
+.btn-ver,
+.btn-editar,
+.btn-eliminar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     border: none;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+    font-size: 16px;
+    position: relative;
+    overflow: hidden;
 }
-.btn-ver { background: #e8f5ff; }
-.btn-editar { background: #fff8e1; }
-.btn-eliminar { background: #ffeaea; }
+
+/* Efecto de ripple al hacer clic */
+.btn-icon-action:active::after,
+.btn-ver:active::after,
+.btn-editar:active::after,
+.btn-eliminar:active::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.3);
+    top: 0;
+    left: 0;
+}
+
+/* ========== BOTÓN VER ========== */
+.btn-icon-action.view,
+.btn-ver {
+    background: rgba(45, 90, 61, 0.12);
+    color: var(--verde-medio);
+    border: 1px solid rgba(45, 90, 61, 0.2);
+}
+
+.btn-icon-action.view:hover,
+.btn-ver:hover {
+    background: var(--verde-medio);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(45, 90, 61, 0.3);
+}
+
+/* ========== BOTÓN EDITAR ========== */
+.btn-icon-action.edit,
+.btn-editar {
+    background: rgba(200, 168, 75, 0.12);
+    color: var(--dorado);
+    border: 1px solid rgba(200, 168, 75, 0.2);
+}
+
+.btn-icon-action.edit:hover,
+.btn-editar:hover {
+    background: var(--dorado);
+    color: var(--verde-oscuro);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(200, 168, 75, 0.3);
+}
+
+/* ========== BOTÓN ELIMINAR ========== */
+.btn-icon-action.delete,
+.btn-eliminar {
+    background: rgba(192, 57, 43, 0.1);
+    color: #c0392b;
+    border: 1px solid rgba(192, 57, 43, 0.2);
+}
+
+.btn-icon-action.delete:hover,
+.btn-eliminar:hover {
+    background: #c0392b;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(192, 57, 43, 0.3);
+}
+
+/* SVG dentro de botones */
+.btn-icon-action svg,
+.btn-ver svg,
+.btn-editar svg,
+.btn-eliminar svg {
+    width: 18px;
+    height: 18px;
+    transition: all 0.2s;
+}
+
+/* Al hacer hover, el SVG cambia de color */
+.btn-icon-action.view:hover svg,
+.btn-ver:hover svg {
+    stroke: white;
+}
+
+.btn-icon-action.edit:hover svg,
+.btn-editar:hover svg {
+    stroke: var(--verde-oscuro);
+}
+
+.btn-icon-action.delete:hover svg,
+.btn-eliminar:hover svg {
+    stroke: white;
+}
 
 /* Modal iframe */
 .modal-iframe-overlay {
@@ -176,79 +281,6 @@ tbody tr:hover { background: #f0f6f1; }
     overflow: hidden;
 }
 
-/* ============================================
-   MEJORAS PARA BOTONES DE ACCIÓN
-   ============================================ */
-
-/* Contenedor de acciones */
-.acciones-cell,
-td.acciones,
-.acciones {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    align-items: center;
-    white-space: nowrap;
-}
-
-/* Botones de acción individuales */
-.btn-icon-action,
-.btn-ver,
-.btn-editar,
-.btn-eliminar {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    background: transparent;
-}
-
-.btn-icon-action.view,
-.btn-ver {
-    background: #e8f5ff;
-    color: #1a6fa8;
-}
-
-.btn-icon-action.edit,
-.btn-editar {
-    background: #fff8e1;
-    color: #c07b00;
-}
-
-.btn-icon-action.delete,
-.btn-eliminar {
-    background: #ffeaea;
-    color: #c0392b;
-}
-
-.btn-icon-action:hover,
-.btn-ver:hover,
-.btn-editar:hover,
-.btn-eliminar:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.btn-icon-action:active,
-.btn-ver:active,
-.btn-editar:active,
-.btn-eliminar:active {
-    transform: translateY(0);
-}
-
-/* SVG dentro de botones */
-.btn-icon-action svg,
-.btn-ver svg,
-.btn-editar svg,
-.btn-eliminar svg {
-    width: 18px;
-    height: 18px;
-}
 
 /* ============================================
    MEJORAS PARA PAGINACIÓN
