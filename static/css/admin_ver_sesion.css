@@ -1,0 +1,235 @@
+/* ============================================
+   ESTILOS EXCLUSIVOS DEL MODAL DETALLE
+   Archivo: admin_ver_sesion.html
+   ============================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+/* Variables (copiadas de base.css) */
+:root {
+    --verde-oscuro: #1a3a2a;
+    --verde-medio: #2d5a3d;
+    --verde-claro: #3d7a52;
+    --dorado: #c8a84b;
+    --blanco: #ffffff;
+    --gris-fondo: #f4f6f3;
+    --gris-tabla: #e8ede9;
+    --texto-oscuro: #1a2a1e;
+    --texto-medio: #3d5a44;
+}
+
+/* Modo oscuro */
+.dark-mode {
+    --verde-oscuro: #0a1f15;
+    --verde-medio: #0d2a1c;
+    --gris-fondo: #0a0a0a;
+    --blanco: #141414;
+    --gris-tabla: #1a1a1a;
+    --texto-oscuro: #e0e0e0;
+    --texto-medio: #c0c0c0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'DM Sans', sans-serif;
+    background: transparent;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.modal-contenido {
+    background: var(--blanco);
+    width: 100%;
+    max-width: 800px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+
+/* Resto de estilos igual... */
+
+/* Cabecera del modal */
+.modal-header-custom {
+    background: linear-gradient(135deg, var(--verde-oscuro), var(--verde-medio));
+    color: white;
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header-custom h2 {
+    margin: 0;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+}
+
+.btn-cerrar-modal {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    line-height: 1;
+}
+
+.btn-cerrar-modal:hover {
+    transform: scale(1.1);
+}
+
+/* Cuerpo del modal */
+.modal-body-custom {
+    padding: 25px;
+    max-height: 65vh;
+    overflow-y: auto;
+    background: var(--blanco);
+}
+
+/* Footer del modal */
+.modal-footer-custom {
+    padding: 15px 25px;
+    background: var(--gris-tabla);
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+.btn-cerrar {
+    background: var(--verde-medio);
+    color: white;
+    border: none;
+    padding: 8px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.btn-cerrar:hover {
+    background: var(--verde-oscuro);
+}
+
+/* Secciones de detalle */
+.modal-detalle-seccion {
+    background: var(--gris-fondo);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--verde-medio);
+}
+
+.modal-detalle-seccion h3 {
+    color: var(--verde-medio);
+    margin: 0 0 12px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Grid de información */
+.modal-detalle-grid {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 10px 15px;
+    font-size: 0.9rem;
+}
+
+.modal-detalle-label {
+    font-weight: 600;
+    color: var(--texto-medio);
+}
+
+.modal-detalle-valor {
+    color: var(--texto-oscuro);
+}
+
+/* Texto largo (biografía, materiales) */
+.modal-detalle-texto {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--texto-medio);
+    margin-top: 10px;
+}
+
+/* Fotos */
+.modal-detalle-foto {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.modal-detalle-foto img {
+    max-width: 200px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* ============================================
+   MODO OSCURO PARA EL MODAL
+   ============================================ */
+.dark-mode body {
+    background: #0a0a0a;
+}
+
+.dark-mode .modal-contenido {
+    background: #141414;
+}
+
+.dark-mode .modal-body-custom {
+    background: #141414;
+}
+
+.dark-mode .modal-detalle-seccion {
+    background: #1a1a1a;
+}
+
+.dark-mode .modal-detalle-valor {
+    color: #e0e0e0;
+}
+
+.dark-mode .modal-detalle-label {
+    color: #a0a0a0;
+}
+
+.dark-mode .modal-detalle-seccion h3 {
+    color: #c8a84b;
+}
+
+.dark-mode .modal-footer-custom {
+    background: #1a1a1a;
+    border-top-color: #2a2a2a;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 600px) {
+    .modal-detalle-grid {
+        grid-template-columns: 1fr;
+        gap: 5px;
+    }
+    
+    .modal-header-custom h2 {
+        font-size: 1.1rem;
+    }
+    
+    .modal-body-custom {
+        padding: 18px;
+    }
+    
+    body {
+        padding: 10px;
+    }
+}

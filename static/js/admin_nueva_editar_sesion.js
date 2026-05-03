@@ -37,18 +37,20 @@ function mostrarError(campoId, mensaje) {
     const errorDiv = document.getElementById(`error-${campoId}`);
     if (errorDiv) {
         errorDiv.textContent = mensaje;
-        errorDiv.classList.add('show');
+        errorDiv.style.display = 'block';
     }
     const campo = document.getElementById(campoId);
     if (campo) {
-        campo.classList.add('error');
+        campo.style.borderColor = '#dc3545';
     }
 }
 
 // Función para limpiar errores
 function limpiarErrores() {
-    document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
-    document.querySelectorAll('input, select, textarea').forEach(el => el.classList.remove('error'));
+    document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+        el.style.borderColor = '';
+    });
 }
 
 // Validar fecha no pasada
@@ -58,6 +60,28 @@ function fechaNoPasada(fechaStr) {
     const fechaActual = new Date();
     fechaActual.setHours(0, 0, 0, 0);
     return fechaSeleccionada >= fechaActual;
+}
+
+// Función para validar horas en tiempo real
+function validarHorasEnTiempoReal() {
+    const horaInicio = document.getElementById('hora_inicio');
+    const horaFin = document.getElementById('hora_fin');
+    
+    if (horaInicio && horaFin && horaInicio.value && horaFin.value) {
+        const minutosInicio = horaAMinutos(horaInicio.value);
+        const minutosFin = horaAMinutos(horaFin.value);
+        
+        if (minutosInicio >= minutosFin) {
+            mostrarError('hora_fin', 'La hora de fin debe ser posterior a la hora de inicio');
+            return false;
+        } else {
+            const errorDiv = document.getElementById('error-hora_fin');
+            if (errorDiv) errorDiv.style.display = 'none';
+            horaFin.style.borderColor = '';
+            return true;
+        }
+    }
+    return true;
 }
 
 // Validar formulario completo
@@ -82,6 +106,7 @@ function validarFormularioConLista() {
         mostrarError('sede', 'La sede es requerida');
         errores.push('La sede es requerida');
     }
+    
     // Validar nombre de sesión
     const nombreSesion = document.getElementById('nombre_de_sesion');
     if (!nombreSesion.value) {
@@ -93,7 +118,7 @@ function validarFormularioConLista() {
     const nombre = document.getElementById('nombre_ponente');
     if (!nombre.value) {
         mostrarError('nombre_ponente', 'El nombre es requerido');
-        errores.push(' El nombre del ponente es requerido');
+        errores.push('El nombre del ponente es requerido');
     } else if (!soloLetras(nombre.value)) {
         mostrarError('nombre_ponente', 'Solo se permiten letras y espacios');
         errores.push('El nombre solo puede contener letras y espacios');
@@ -142,7 +167,7 @@ function validarFormularioConLista() {
         }
     }
     
-    // Validar horas
+    // ✅ VALIDACIÓN DE HORAS (UN SOLO BLOQUE, CORRECTO)
     const horaInicio = document.getElementById('hora_inicio');
     const horaFin = document.getElementById('hora_fin');
     
@@ -157,6 +182,9 @@ function validarFormularioConLista() {
     if (horaInicio.value && horaFin.value) {
         const minutosInicio = horaAMinutos(horaInicio.value);
         const minutosFin = horaAMinutos(horaFin.value);
+        
+        console.log("Validando horas:", horaInicio.value, "→", minutosInicio, "vs", horaFin.value, "→", minutosFin);
+        
         if (minutosInicio >= minutosFin) {
             mostrarError('hora_fin', 'La hora de fin debe ser posterior a la hora de inicio');
             errores.push('La hora de fin debe ser después de la hora de inicio');
@@ -198,6 +226,7 @@ function validarFormularioConLista() {
         errores.push('El logo debe ser una imagen válida (JPG, PNG, GIF)');
     }
     
+    console.log("Total errores encontrados:", errores.length);
     return errores;
 }
 
@@ -285,8 +314,8 @@ function initValidacionesTiempoReal() {
                     mostrarError(campoId, 'Solo se permiten letras y espacios');
                 } else {
                     const errorDiv = document.getElementById(`error-${campoId}`);
-                    if (errorDiv) errorDiv.classList.remove('show');
-                    this.classList.remove('error');
+                    if (errorDiv) errorDiv.style.display = 'none';
+                    this.style.borderColor = '';
                 }
                 formModified = true;
             });
@@ -301,8 +330,8 @@ function initValidacionesTiempoReal() {
                 mostrarError('cupo_audiencia', 'Ingrese un número válido (mayor a 0)');
             } else {
                 const errorDiv = document.getElementById('error-cupo_audiencia');
-                if (errorDiv) errorDiv.classList.remove('show');
-                this.classList.remove('error');
+                if (errorDiv) errorDiv.style.display = 'none';
+                this.style.borderColor = '';
             }
             formModified = true;
         });
@@ -318,26 +347,37 @@ function initValidacionesTiempoReal() {
                     mostrarError(inputId, 'El archivo debe ser una imagen (JPG, PNG, GIF)');
                 } else {
                     const errorDiv = document.getElementById(`error-${inputId}`);
-                    if (errorDiv) errorDiv.classList.remove('show');
-                    this.classList.remove('error');
+                    if (errorDiv) errorDiv.style.display = 'none';
+                    this.style.borderColor = '';
                 }
                 formModified = true;
             });
         }
     });
     
-    
-    // Validación de horas en tiempo real
+    // ✅ VALIDACIÓN DE HORAS EN TIEMPO REAL (CORREGIDA)
     const horaInicio = document.getElementById('hora_inicio');
     const horaFin = document.getElementById('hora_fin');
     
     if (horaInicio) {
-        horaInicio.addEventListener('change', () => { formModified = true; });
-        horaInicio.addEventListener('input', () => { formModified = true; });
+        horaInicio.addEventListener('change', () => {
+            formModified = true;
+            validarHorasEnTiempoReal();
+        });
+        horaInicio.addEventListener('input', () => {
+            formModified = true;
+            validarHorasEnTiempoReal();
+        });
     }
     if (horaFin) {
-        horaFin.addEventListener('change', () => { formModified = true; });
-        horaFin.addEventListener('input', () => { formModified = true; });
+        horaFin.addEventListener('change', () => {
+            formModified = true;
+            validarHorasEnTiempoReal();
+        });
+        horaFin.addEventListener('input', () => {
+            formModified = true;
+            validarHorasEnTiempoReal();
+        });
     }
 }
 
@@ -380,10 +420,7 @@ function initFormSubmit() {
                 try {
                     const response = await fetch('/admin/sesion/nueva', {
                         method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
+                        body: formData
                     });
                     
                     const data = await response.json();
@@ -393,8 +430,7 @@ function initFormSubmit() {
                             title: '¡Éxito!',
                             text: data.message || 'Sesión registrada exitosamente',
                             icon: 'success',
-                            confirmButtonColor: '#2d6e3e',
-                            confirmButtonText: 'OK'
+                            confirmButtonColor: '#2d6e3e'
                         });
                         window.location.href = '/admin/sesiones';
                     } else {
@@ -411,8 +447,7 @@ function initFormSubmit() {
                     await Swal.fire({
                         title: 'Error',
                         text: 'Error de conexión con el servidor',
-                        icon: 'error',
-                        confirmButtonColor: '#2d6e3e'
+                        icon: 'error'
                     });
                     formSubmitted = false;
                 }
@@ -425,13 +460,12 @@ function initFormSubmit() {
             
             Swal.fire({
                 title: 'Campos con errores',
-                html: `<div style="text-align: left; max-height: 300px; overflow-y: auto;">
-                           <p style="margin-bottom: 10px;"><strong>Por favor corrige los siguientes campos:</strong></p>
+                html: `<div style="text-align: left;">
+                           <p><strong>Por favor corrige:</strong></p>
                            ${listaErrores}
                         </div>`,
                 icon: 'error',
-                confirmButtonColor: '#2d6e3e',
-                confirmButtonText: 'Entendido'
+                confirmButtonColor: '#2d6e3e'
             });
         }
     });
@@ -446,7 +480,7 @@ function initCancelButtons() {
             if (formModified && !formSubmitted) {
                 const result = await Swal.fire({
                     title: '¿Descartar cambios?',
-                    html: 'Los datos se perderán<br><strong>¿Estás segur@ de salir?</strong>',
+                    text: 'Los datos se perderán. ¿Estás seguro?',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#dc3545',
@@ -471,7 +505,7 @@ function initCancelButtons() {
             if (formModified && !formSubmitted) {
                 const result = await Swal.fire({
                     title: '¿Descartar cambios?',
-                    html: 'Los datos se perderán<br><strong>¿Estás segur@ de salir?</strong>',
+                    text: 'Los datos se perderán. ¿Estás seguro?',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#dc3545',

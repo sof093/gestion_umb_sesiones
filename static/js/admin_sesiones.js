@@ -129,36 +129,52 @@
         tbody.innerHTML = html;
     }
     // Mostrar paginación
-    function mostrarPaginacion(totalPages, totalItems) {
-        const wrap = document.getElementById('paginacionWrap');
-        if (!wrap) return;
-        
-        if (totalPages <= 1) {
-            wrap.innerHTML = '';
-            return;
-        }
-        
-        let html = `<div style="padding: 1rem; text-align: center; color: #666; font-size: 0.85rem;">Mostrando ${((currentPage-1)*rowsPerPage)+1} a ${Math.min(currentPage*rowsPerPage, totalItems)} de ${totalItems} sesiones</div>`;
-        html += '<div class="paginacion">';
-        
-        // Botón anterior
-        html += `<button class="page-btn" onclick="cambiarPagina(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>«</button>`;
-        
-        // Números de página
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
-                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="cambiarPagina(${i})">${i}</button>`;
-            } else if (i === currentPage - 3 || i === currentPage + 3) {
-                html += `<button class="page-btn" disabled>...</button>`;
-            }
-        }
-        
-        // Botón siguiente
-        html += `<button class="page-btn" onclick="cambiarPagina(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>»</button>`;
-        html += '</div>';
-        
-        wrap.innerHTML = html;
+    // Mostrar paginación
+function mostrarPaginacion(totalPages, totalItems) {
+    const wrap = document.getElementById('paginacionWrap');
+    if (!wrap) return;
+    
+    if (totalPages <= 1 && totalItems <= rowsPerPage) {
+        wrap.innerHTML = '';
+        return;
     }
+    
+    const inicio = ((currentPage - 1) * rowsPerPage) + 1;
+    const fin = Math.min(currentPage * rowsPerPage, totalItems);
+    
+    let html = `
+        <div class="paginacion-info">
+            Mostrando ${inicio} a ${fin} de ${totalItems} sesiones
+        </div>
+        <div class="paginacion">
+    `;
+    
+    // Botón anterior
+    html += `<button class="page-btn" onclick="cambiarPagina(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>`;
+    
+    // Números de página
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="cambiarPagina(${i})">${i}</button>`;
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            html += `<button class="page-btn" disabled>...</button>`;
+        }
+    }
+    
+    // Botón siguiente
+    html += `<button class="page-btn" onclick="cambiarPagina(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18l6-6-6-6"/>
+                </svg>
+            </button>`;
+    
+    html += '</div>';
+    wrap.innerHTML = html;
+}
 
     // Cambiar página
     function cambiarPagina(page) {
@@ -230,13 +246,7 @@
         iframe.src = 'about:blank';
     }
     
-    // Cerrar modal al hacer clic fuera
-    window.onclick = function(event) {
-        const modal = document.getElementById('modalIframe');
-        if (event.target === modal) {
-            cerrarModalSesion();
-        }
-    }
+
     // Event listeners
     document.addEventListener('DOMContentLoaded', function() {
         cargarSesiones();

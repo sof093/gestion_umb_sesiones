@@ -1,0 +1,459 @@
+/* ============================================
+   ESTILOS EXCLUSIVOS DE LA TABLA DE SESIONES
+   Archivo: admin_sesiones.html
+   ============================================ */
+
+/* Controles de búsqueda y filtros */
+.controls {
+    background: var(--blanco);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.mostrar-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--texto-medio);
+}
+
+.select-mostrar {
+    border: 1.5px solid #c8d9cc;
+    border-radius: 7px;
+    padding: .3rem .6rem;
+    background: var(--gris-fondo);
+    cursor: pointer;
+    width: 60px;
+}
+
+.search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+}
+
+.search-wrap svg {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    color: #7a9a82;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+    border: 1.5px solid #c8d9cc;
+    border-radius: 8px;
+    background: var(--gris-fondo);
+}
+
+.select-filtro {
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    border: 1.5px solid #c8d9cc;
+    border-radius: 8px;
+    background: var(--gris-fondo);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%237a9a82' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+}
+
+/* Tabla */
+.tabla-wrap {
+    background: var(--blanco);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead tr {
+    background: var(--verde-oscuro);
+}
+
+thead th {
+    color: var(--blanco) !important;
+    padding: .9rem 1.1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: .88rem;
+}
+
+tbody td {
+    padding: .9rem 1.1rem;
+    font-size: .9rem;
+    color: var(--texto-oscuro);
+}
+
+tbody tr {
+    border-bottom: 1px solid var(--gris-tabla);
+}
+tbody tr:hover { background: #f0f6f1; }
+
+/* Paginación */
+.paginacion-wrap {
+    display: flex;
+    justify-content: center;
+    gap: .4rem;
+    padding: 1.1rem;
+    background: var(--blanco);
+    border-top: 1px solid var(--gris-tabla);
+}
+
+.btn-pag {
+    width: 34px; height: 34px;
+    border-radius: 7px;
+    border: 1.5px solid #c8d9cc;
+    background: var(--blanco);
+    color: var(--verde-oscuro);
+    cursor: pointer;
+}
+.btn-pag.activo {
+    background: var(--verde-oscuro);
+    color: var(--blanco);
+}
+
+/* Badges de tipos */
+.badge-conferencia-magistral { background: #d6eaf4; color: #1a5278; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+.badge-conferencia { background: #d4e6f1; color: #1b4f72; padding: 4px 12px; border-radius: 20px; }
+.badge-taller { background: #d5f5e3; color: #1e8449; padding: 4px 12px; border-radius: 20px; }
+.badge-exhibicion { background: #f3e0d0; color: #b64926; padding: 4px 12px; border-radius: 20px; }
+.badge-inauguracion { background: #fdebd0; color: #d35400; padding: 4px 12px; border-radius: 20px; }
+.badge-cierre { background: #e8d5f0; color: #6a1b9a; padding: 4px 12px; border-radius: 20px; }
+
+/* Botones de acción */
+.acciones-cell {
+    display: flex;
+    gap: .5rem;
+    justify-content: center;
+}
+
+.btn-ver, .btn-editar, .btn-eliminar {
+    width: 34px; height: 34px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+}
+.btn-ver { background: #e8f5ff; }
+.btn-editar { background: #fff8e1; }
+.btn-eliminar { background: #ffeaea; }
+
+/* Modal iframe */
+.modal-iframe-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(5px);
+    z-index: 1000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-iframe-container {
+    width: 90%;
+    max-width: 850px;
+    height: 85vh;
+    background: transparent;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* ============================================
+   MEJORAS PARA BOTONES DE ACCIÓN
+   ============================================ */
+
+/* Contenedor de acciones */
+.acciones-cell,
+td.acciones,
+.acciones {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    white-space: nowrap;
+}
+
+/* Botones de acción individuales */
+.btn-icon-action,
+.btn-ver,
+.btn-editar,
+.btn-eliminar {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    background: transparent;
+}
+
+.btn-icon-action.view,
+.btn-ver {
+    background: #e8f5ff;
+    color: #1a6fa8;
+}
+
+.btn-icon-action.edit,
+.btn-editar {
+    background: #fff8e1;
+    color: #c07b00;
+}
+
+.btn-icon-action.delete,
+.btn-eliminar {
+    background: #ffeaea;
+    color: #c0392b;
+}
+
+.btn-icon-action:hover,
+.btn-ver:hover,
+.btn-editar:hover,
+.btn-eliminar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.btn-icon-action:active,
+.btn-ver:active,
+.btn-editar:active,
+.btn-eliminar:active {
+    transform: translateY(0);
+}
+
+/* SVG dentro de botones */
+.btn-icon-action svg,
+.btn-ver svg,
+.btn-editar svg,
+.btn-eliminar svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ============================================
+   MEJORAS PARA PAGINACIÓN
+   ============================================ */
+
+.paginacion-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 20px;
+    background: var(--blanco);
+    border-top: 1px solid var(--gris-tabla);
+}
+
+/* Texto de información de páginas */
+.paginacion-info {
+    text-align: center;
+    color: var(--texto-medio);
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 8px 16px;
+    background: var(--gris-fondo);
+    border-radius: 20px;
+    display: inline-block;
+}
+
+/* Contenedor de botones de paginación */
+.paginacion {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Botones de página */
+.page-btn {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 12px;
+    border: 1.5px solid #c8d9cc;
+    background: var(--blanco);
+    color: var(--verde-oscuro);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-btn:hover:not(:disabled) {
+    background: var(--verde-oscuro);
+    color: var(--blanco);
+    border-color: var(--verde-oscuro);
+    transform: translateY(-1px);
+}
+
+.page-btn.active {
+    background: var(--verde-oscuro);
+    color: var(--blanco);
+    border-color: var(--verde-oscuro);
+    cursor: default;
+}
+
+.page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   MEJORAS PARA LA TABLA
+   ============================================ */
+
+/* Aumentar espacio entre celdas */
+tbody td {
+    padding: 16px 12px;
+    vertical-align: middle;
+}
+
+/* Mejorar el área de información de sesión */
+.sesion-info {
+    min-width: 180px;
+}
+
+.sesion-nombre {
+    font-weight: 700;
+    color: var(--verde-oscuro);
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+}
+
+.sesion-fecha {
+    font-size: 0.8rem;
+    color: var(--texto-medio);
+    margin-bottom: 3px;
+}
+
+.sesion-horario {
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 3px;
+}
+
+.sesion-cupo {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.sesion-sede {
+    font-size: 0.75rem;
+    color: var(--verde-claro);
+    font-weight: 500;
+}
+
+/* Mejorar área del ponente */
+.ponente-info {
+    min-width: 160px;
+}
+
+.ponente-nombre {
+    font-weight: 600;
+    color: var(--texto-oscuro);
+    margin-bottom: 6px;
+}
+
+.ponente-perfil {
+    font-size: 0.75rem;
+    color: #888;
+    line-height: 1.4;
+}
+
+/* Badges más consistentes */
+.badge-conferencia-magistral,
+.badge-conferencia,
+.badge-taller,
+.badge-exhibicion,
+.badge-inauguracion,
+.badge-cierre {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* ============================================
+   MODO OSCURO - MEJORAS
+   ============================================ */
+.dark-mode .btn-icon-action.view,
+.dark-mode .btn-ver {
+    background: #1a3d5c;
+    color: #7bc5ff;
+}
+
+.dark-mode .btn-icon-action.edit,
+.dark-mode .btn-editar {
+    background: #5c4a1a;
+    color: #ffd966;
+}
+
+.dark-mode .btn-icon-action.delete,
+.dark-mode .btn-eliminar {
+    background: #5c1a1a;
+    color: #ff8888;
+}
+
+.dark-mode .paginacion-info {
+    background: #1a1a1a;
+    color: #c0c0c0;
+}
+
+.dark-mode .page-btn {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    border-color: #3a3a3a;
+}
+
+.dark-mode .page-btn:hover:not(:disabled) {
+    background: var(--verde-oscuro);
+    color: var(--blanco);
+}
+
+.dark-mode .sesion-nombre {
+    color: #c8a84b;
+}
+
+.dark-mode .sesion-sede {
+    color: #7bc5ff;
+}
+
+.dark-mode .ponente-nombre {
+    color: #e0e0e0;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+    .hero-title { font-size: 1.4rem; }
+    thead th:nth-child(3), thead th:nth-child(4),
+    tbody td:nth-child(3), tbody td:nth-child(4) { display: none; }
+}

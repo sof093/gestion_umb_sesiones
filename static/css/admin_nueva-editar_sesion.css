@@ -1,0 +1,215 @@
+/* ============================================
+   ESTILOS EXCLUSIVOS DEL FORMULARIO
+   Archivos: admin_nueva_sesion.html, admin_editar_sesion.html
+   ============================================ */
+
+/* Contenedor principal del formulario */
+.form-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    background: var(--blanco);
+    border-radius: 12px;
+    box-shadow: var(--sombra);
+    overflow: hidden;
+}
+
+/* Cabecera del formulario */
+.form-header {
+    background: var(--verde-oscuro);
+    color: white;
+    padding: 1.2rem 1.5rem;
+}
+
+.form-header h2 {
+    margin: 0;
+    font-family: 'Playfair Display', serif;
+}
+
+/* Cuerpo del formulario */
+.form-body {
+    padding: 2rem;
+}
+
+/* Filas de 2 columnas */
+.form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0;
+}
+
+/* Cada grupo de campo */
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    margin-bottom: 1rem;
+}
+
+/* Etiquetas */
+.form-group label {
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--verde-oscuro);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+
+/* Campos de entrada */
+.form-group input,
+.form-group select,
+.form-group textarea {
+    border: 1.5px solid #c8d9cc;
+    border-radius: 7px;
+    padding: .5rem .8rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .9rem;
+    color: var(--texto-oscuro);
+    background: var(--gris-fondo);
+    outline: none;
+    transition: border-color .2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--verde-claro);
+}
+
+/* Grupo de radio buttons */
+.radio-group {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    margin-top: .3rem;
+}
+
+.radio-group label {
+    font-weight: normal;
+    text-transform: none;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+}
+
+/* Mensajes de error */
+.error-message {
+    color: #dc3545;
+    font-size: 0.75rem;
+    display: none;
+    margin-top: 0.25rem;
+}
+
+/* Texto pequeño de ayuda */
+small {
+    color: #7a9a82;
+    font-size: 0.7rem;
+    margin-top: 0.25rem;
+}
+
+/* Footer con botones */
+.modal-footer {
+    padding: 1rem 1.4rem;
+    border-top: 1px solid var(--gris-tabla);
+    display: flex;
+    gap: .7rem;
+    justify-content: flex-end;
+    background: var(--blanco);
+}
+
+/* Botón cancelar */
+.btn-cancelar {
+    padding: .5rem 1.2rem;
+    border-radius: 7px;
+    border: 1.5px solid #c8d9cc;
+    background: var(--blanco);
+    font-family: 'DM Sans', sans-serif;
+    font-size: .9rem;
+    color: var(--texto-medio);
+    cursor: pointer;
+    transition: background .2s;
+}
+
+.btn-cancelar:hover {
+    background: var(--gris-fondo);
+}
+
+/* Botón guardar */
+.btn-guardar {
+    padding: .5rem 1.4rem;
+    border-radius: 7px;
+    border: none;
+    background: var(--verde-boton);
+    font-family: 'DM Sans', sans-serif;
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--blanco);
+    cursor: pointer;
+    transition: background .2s;
+}
+
+.btn-guardar:hover {
+    background: var(--verde-hover);
+}
+
+/* ============================================
+   MODO OSCURO PARA EL FORMULARIO
+   ============================================ */
+.dark-mode .form-container {
+    background: #141414;
+}
+
+.dark-mode .form-header {
+    background: #0a1f15;
+}
+
+.dark-mode .form-group label {
+    color: #c0c0c0;
+}
+
+.dark-mode .form-group input,
+.dark-mode .form-group select,
+.dark-mode .form-group textarea {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    border-color: #3a3a3a;
+}
+
+.dark-mode .modal-footer {
+    background: #141414;
+    border-top-color: #2a2a2a;
+}
+
+.dark-mode .btn-cancelar {
+    background: #1a1a1a;
+    color: #c0c0c0;
+    border-color: #3a3a3a;
+}
+
+.dark-mode .btn-cancelar:hover {
+    background: #2a2a2a;
+}
+
+.dark-mode small {
+    color: #808080;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .form-body {
+        padding: 1.5rem;
+    }
+    
+    .radio-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
