@@ -408,6 +408,65 @@ def api_carreras():
     finally:
         conexion.close()
 
+@app.route('/admin/ver-sesion')
+def admin_ver_sesion():
+    """Página para ver detalles de la sesión (se carga en modal)"""
+    if not session.get('admin_logged'):
+        return redirect(url_for('index'))
+    
+    sesion_id = request.args.get('id')
+    
+    conexion = config.conectar_db()
+    if not conexion:
+        return "<h3>Error de conexión</h3>", 500
+    
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT s.*, ts.nombre_sesion as tipo, e.nombre_escenario as escenario_nombre,
+                       c.nombre_carrera as carrera_nombre
+                FROM sesion s
+                JOIN tipo_sesion ts ON s.id_tipo_sesion = ts.id_tipo_sesion
+                JOIN escenarios e ON s.id_escenario = e.id_escenario
+                LEFT JOIN carreras c ON s.id_carrera = c.id_carrera
+                WHERE s.id_sesion = %s
+            """, (sesion_id,))
+            sesion = cursor.fetchone()
+            
+            if not sesion:
+                return "<h3>Sesión no encontrada</h3>", 404
+            
+            # Convertir timedelta a string de hora
+            def convertir_hora(valor):
+                if valor is None:
+                    return 'N/A'
+                if hasattr(valor, 'strftime'):  # Es datetime.time
+                    return valor.strftime('%H:%M')
+                elif hasattr(valor, 'seconds'):  # Es timedelta
+                    horas = valor.seconds // 3600
+                    minutos = (valor.seconds % 3600) // 60
+                    return f"{horas:02d}:{minutos:02d}"
+                return str(valor)[:5]
+            
+            # Convertir los campos de hora
+            sesion['hora_inicio_str'] = convertir_hora(sesion.get('hora_inicio'))
+            sesion['hora_fin_str'] = convertir_hora(sesion.get('hora_fin'))
+            
+            # Convertir fecha a string
+            if sesion.get('fecha'):
+                sesion['fecha_str'] = sesion['fecha'].strftime('%d/%m/%Y') if hasattr(sesion['fecha'], 'strftime') else str(sesion['fecha'])
+            else:
+                sesion['fecha_str'] = 'N/A'
+            
+            return render_template('admin_ver_sesion.html', sesion=sesion)
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"<h3>Error: {str(e)}</h3>", 500
+    finally:
+        conexion.close()
+
 @app.route('/admin/sesion/editar/<int:id>', methods=['GET', 'POST'])
 def admin_editar_sesion(id):
     """Editar una sesión existente"""

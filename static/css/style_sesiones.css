@@ -854,6 +854,232 @@ tbody td {
     border-color: var(--verde-claro);
 }
 
+/* Estilos adicionales para el modal de detalles */
+.detalle-sesion-modal {
+    font-family: 'DM Sans', sans-serif;
+}
+
+.detalle-sesion-modal h3 {
+    font-family: 'Playfair Display', serif;
+    color: #1a3a2a;
+}
+
+.detalle-sesion-modal h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.detalle-sesion-modal p {
+    margin: 5px 0;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.detalle-sesion-modal strong {
+    color: #2d5a3d;
+    font-weight: 600;
+}
+
+/* Estilo para el botón de ver */
+.btn-icon-action.view {
+    background: #e8f5ff;
+    transition: all 0.2s;
+}
+
+.btn-icon-action.view:hover {
+    background: #d0eaff;
+    transform: translateY(-2px);
+}
+
+/* Modal con iframe */
+.modal-iframe-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(5px);
+    z-index: 1000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-iframe-container {
+    width: 90%;
+    max-width: 850px;
+    height: 85vh;
+    background: transparent;
+    border-radius: 16px;
+    overflow: hidden;
+    animation: modalSlideIn 0.3s ease;
+}
+/* ===== MODO NOCTURNO CORREGIDO ===== */
+.dark-mode {
+    --verde-oscuro: #0a1f15;     /* Más oscuro pero no negro */
+    --verde-medio: #0d2a1c;
+    --verde-claro: #1a3d2a;
+    --gris-fondo: #0a0a0a;       /* Fondo negro */
+    --blanco: #141414;            /* Fondo de tarjetas negro/gris oscuro */
+    --gris-tabla: #1a1a1a;        /* Filas alternas */
+    --texto-oscuro: #e0e0e0;
+    --texto-medio: #c0c0c0;
+    --sombra: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+.dark-mode body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+}
+
+/* Tabla - fondo negro */
+.dark-mode .tabla-wrap {
+    background: #141414;  /* Fondo negro de la tabla */
+}
+
+.dark-mode table {
+    background: #141414;
+}
+
+/* Cabecera de tabla - fondo verde oscuro (casi negro) */
+.dark-mode thead tr {
+    background: #0a1f15;
+}
+
+.dark-mode thead th {
+    color: #ffffff !important;
+    background: #0a1f15;
+}
+
+/* Filas de la tabla - fondo negro/gris oscuro */
+.dark-mode tbody tr {
+    background: #141414;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.dark-mode tbody tr:nth-child(even) {
+    background: #1a1a1a;  /* Filas alternas ligeramente más claras */
+}
+
+.dark-mode tbody tr:hover {
+    background: #252525;  /* Hover más claro para contraste */
+}
+
+/* Texto de las celdas */
+.dark-mode tbody td {
+    color: #e0e0e0;
+}
+
+/* Tarjetas de estadísticas */
+.dark-mode .stats-card {
+    background: #141414;
+    border: 1px solid #2a2a2a;
+}
+
+.dark-mode .stats-title {
+    color: #e0e0e0;
+}
+
+.dark-mode .stats-number {
+    color: #c8a84b;  /* Dorado para resaltar */
+}
+
+.dark-mode .stats-label {
+    color: #b0b0b0;
+}
+
+/* Controles de búsqueda */
+.dark-mode .controls {
+    background: #141414;
+    border: 1px solid #2a2a2a;
+}
+
+.dark-mode .search-input,
+.dark-mode .select-filtro,
+.dark-mode .select-mostrar {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    border-color: #3a3a3a;
+}
+
+.dark-mode .search-input::placeholder {
+    color: #808080;
+}
+
+.dark-mode .search-wrap svg {
+    color: #808080;
+}
+
+/* Paginación */
+.dark-mode .paginacion-wrap {
+    background: #141414;
+    border-top: 1px solid #2a2a2a;
+}
+
+.dark-mode .btn-pag {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    border-color: #3a3a3a;
+}
+
+.dark-mode .btn-pag:hover:not(:disabled) {
+    background: #c8a84b;
+    color: #0a0a0a;
+}
+
+.dark-mode .btn-pag.activo {
+    background: #c8a84b;
+    color: #0a0a0a;
+}
+
+/* Footer */
+.dark-mode footer {
+    background: #0a0a0a;
+    color: #b0b0b0;
+}
+
+.dark-mode footer strong {
+    color: #ffffff;
+}
+
+/* Navbar */
+.dark-mode .navbar {
+    background: #0a1f15;
+}
+
+/* Modales */
+.dark-mode .modal {
+    background: #141414;
+}
+
+.dark-mode .modal-header {
+    background: #0a1f15;
+}
+
+.dark-mode .modal-body {
+    background: #141414;
+}
+
+.dark-mode .form-group input,
+.dark-mode .form-group select {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    border-color: #3a3a3a;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .controls {

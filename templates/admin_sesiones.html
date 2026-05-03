@@ -7,12 +7,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/style_sesiones.css">
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
 
 <nav class="navbar">
   <span class="navbar-brand">UES San José del Rincón</span>
   <div class="navbar-right">
+    <button class="theme-toggle" id="themeToggle">
+        <i class="fas fa-moon"></i>
+    </button>
     <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
     <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
     <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">Cerrar sesión</a>
@@ -91,6 +95,12 @@
     <div class="paginacion-wrap" id="paginacionWrap"></div>
   </div>
 </main>
+<!-- Modal iframe para cargar admin_ver_sesion.html -->
+<div id="modalIframe" class="modal-iframe-overlay" style="display: none;">
+    <div class="modal-iframe-container">
+        <iframe id="modalIframeContent" src="/admin/ver-sesion" style="width: 100%; height: 100%; border: none;"></iframe>
+    </div>
+</div>
 
 <footer>
   <strong>© 2026 UES San José del Rincón</strong><br>
@@ -101,5 +111,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script src="/static/js/admin_sesiones.js"></script>
+<script src="/static/js/nocturno.js"></script>
 </body>
 </html>

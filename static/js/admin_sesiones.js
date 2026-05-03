@@ -66,6 +66,7 @@
     }
 
     // Mostrar tabla
+    // Mostrar tabla
     function mostrarTabla(sesiones) {
         const tbody = document.getElementById('tablaCuerpo');
         if (!tbody) return;
@@ -89,8 +90,7 @@
             else if (sesion.tipo === 'Exhibición') badgeClass = 'badge-exhibicion';
             else if (sesion.tipo === 'Cierre del evento') badgeClass = 'badge-cierre';
             
-            html += `
-                <tr>
+            html += `<tr>
                     <td class="sesion-info">
                         <div class="sesion-nombre"><strong>${sesion.nombre_de_sesion || 'Sin nombre'}</strong></div>
                         <div class="sesion-fecha">${fecha}</div>
@@ -105,16 +105,29 @@
                     <td><span class="${badgeClass}">${sesion.tipo || 'N/A'}</span></td>
                     <td>${sesion.escenario_nombre || 'N/A'}</td>
                     <td class="acciones">
-                        <a href="/admin/sesion/editar/${sesion.id_sesion}" class="btn-icon-action edit" title="Editar">Editar</a>
-                        <button onclick="eliminarSesion(${sesion.id_sesion})" class="btn-icon-action delete" title="Eliminar">Eliminar</button>
+                        <button onclick="verDetalles(${sesion.id_sesion})" class="btn-icon-action view" title="Ver detalles">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                        <a href="/admin/sesion/editar/${sesion.id_sesion}" class="btn-icon-action edit" title="Editar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 3l4 4-7 7H10v-4l7-7z"></path>
+                                <path d="M4 20h16"></path>
+                            </svg>
+                        </a>
+                        <button onclick="eliminarSesion(${sesion.id_sesion})" class="btn-icon-action delete" title="Eliminar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 3h6"></path>
+                            </svg>
+                        </button>
                     </td>
-                </tr>
-            `;
+                </tr>`;
         }
         
         tbody.innerHTML = html;
     }
-
     // Mostrar paginación
     function mostrarPaginacion(totalPages, totalItems) {
         const wrap = document.getElementById('paginacionWrap');
@@ -199,6 +212,31 @@
         }
     }
 
+    //Detalles
+    
+    // Ver detalles de la sesión
+       // Ver detalles de la sesión usando iframe
+    function verDetalles(id) {
+        const iframe = document.getElementById('modalIframeContent');
+        iframe.src = `/admin/ver-sesion?id=${id}`;
+        document.getElementById('modalIframe').style.display = 'flex';
+    }
+    
+    // Función para cerrar el modal
+    function cerrarModalSesion() {
+        document.getElementById('modalIframe').style.display = 'none';
+        // Limpiar el iframe para detener la carga
+        const iframe = document.getElementById('modalIframeContent');
+        iframe.src = 'about:blank';
+    }
+    
+    // Cerrar modal al hacer clic fuera
+    window.onclick = function(event) {
+        const modal = document.getElementById('modalIframe');
+        if (event.target === modal) {
+            cerrarModalSesion();
+        }
+    }
     // Event listeners
     document.addEventListener('DOMContentLoaded', function() {
         cargarSesiones();
