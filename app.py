@@ -865,6 +865,77 @@ def test_sesiones():
         return jsonify({'error': str(e)}), 500
     finally:
         conexion.close()
+
+@app.route('/admin/usuario/nuevo', methods=['POST'])
+def admin_nuevo_usuario():
+    """Crear nuevo usuario (alumno o administrador)"""
+    if not session.get('user_tipo') == 'admin':
+        return jsonify({'success': False, 'message': 'No autorizado'})
+    
+    tipo = request.form.get('tipo_usuario')  # ← EL ROL SE SELECCIONA
+    nombre = request.form.get('nombre')
+    apellido_paterno = request.form.get('apellido_paterno')
+    apellido_materno = request.form.get('apellido_materno')
+    email = request.form.get('email')
+    
+    conexion = config.conectar_db()
+    
+    try:
+        if tipo == 'alumno':
+            # Insertar en tabla ALUMNOS
+            matricula = request.form.get('matricula')
+            id_carrera = request.form.get('id_carrera')
+            genero = request.form.get('genero')
+            
+            # Contraseña temporal = matrícula
+            password_temporal = matricula
+            hashed_password = generate_password_hash(password_temporal)
+            
+            with conexion.cursor() as cursor:
+                sql = """
+                    INSERT INTO alumnos 
+                    (nombre_alumno, apellido_paterno, apellido_materno, 
+                     correo_electronico, matricula, password, id_carrera, genero,
+                     primer_login)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+                """
+                cursor.execute(sql, (nombre, apellido_paterno, apellido_materno, 
+                                    email, matricula, hashed_password, id_carrera, genero))
+                conexion.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': f'Alumno creado. Contraseña temporal: {password_temporal}'
+            })
+        
+        elif tipo == 'admin':
+            # Insertar en tabla ADMINISTRADOR
+            password_temporal = 'Admin123'
+            hashed_password = generate_password_hash(password_temporal)
+            
+            with conexion.cursor() as cursor:
+                sql = """
+                    INSERT INTO administrador 
+                    (nombre_admin, apellido_paterno, apellido_materno, email, password)
+                    VALUES (%s, %s, %s, %s, %s)
+                """
+                cursor.execute(sql, (nombre, apellido_paterno, apellido_materno, 
+                                    email, hashed_password))
+                conexion.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': f'Administrador creado. Contraseña temporal: {password_temporal}'
+            })
+        
+        else:
+            return jsonify({'success': False, 'message': 'Tipo de usuario no válido'})
+            
+    except Exception as e:
+        conexion.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conexion.close()
         
 
 if __name__ == '__main__':

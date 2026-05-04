@@ -432,7 +432,32 @@ footer strong { color: #ffffff; }
         gap: 0.5rem;
     }
 }
+/* ============================================
+   NAVBAR LINKS EN MODO OSCURO - CORRECCIÓN
+   ============================================ */
+.dark-mode .nav-link {
+    color: #ffffff !important;  /* Blanco forzado para mejor legibilidad */
+}
 
+.dark-mode .nav-link:hover {
+    color: var(--dorado) !important;  /* Dorado al hacer hover */
+}
+
+/* Para asegurar que los títulos "Inicio" y "Usuarios" se vean bien */
+.dark-mode .nav-links .nav-link {
+    color: #ffffff !important;
+    font-weight: 500;
+}
+
+/* Si hay algún texto adicional en el navbar */
+.dark-mode .navbar-right span,
+.dark-mode .admin-label {
+    color: #ffffff;
+}
+
+.dark-mode .navbar-brand {
+    color: #ffffff !important;
+}
 /* Modo oscuro para el menú móvil */
 .dark-mode .nav-links {
     background: #0a1f15;
