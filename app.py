@@ -482,7 +482,7 @@ def admin_editar_sesion(id):
         try:
             # Obtener datos del formulario
             sede = request.form.get('sede')
-            nombre_de_sesion = request.form.get('nombre_de_sesion')  # ← AGREGAR ESTO
+            nombre_de_sesion = request.form.get('nombre_de_sesion')
             fecha = request.form.get('fecha')
             nombre_ponente = request.form.get('nombre_ponente')
             apellido_paterno = request.form.get('apellido_paterno')
@@ -498,30 +498,53 @@ def admin_editar_sesion(id):
             descripcion_materiales = request.form.get('descripcion_materiales')
             procedencia = request.form.get('procedencia_institucion_independiente')
             
-            # Validaciones
+            # ============================================
+            # VALIDACIONES DE BACKEND
+            # ============================================
+            
+            # Validar nombres (solo letras)
             if not validar_solo_letras(nombre_ponente):
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'message': 'El nombre del ponente solo puede contener letras'})
                 flash('El nombre del ponente solo puede contener letras', 'error')
                 return redirect(url_for('admin_editar_sesion', id=id))
-            
+
             if not validar_solo_letras(apellido_paterno):
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'message': 'El apellido paterno solo puede contener letras'})
                 flash('El apellido paterno solo puede contener letras', 'error')
                 return redirect(url_for('admin_editar_sesion', id=id))
-            
+
             if apellido_materno and not validar_solo_letras(apellido_materno):
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'message': 'El apellido materno solo puede contener letras'})
                 flash('El apellido materno solo puede contener letras', 'error')
                 return redirect(url_for('admin_editar_sesion', id=id))
-            
+
+            # Validar cupo
             if cupo_audiencia and not validar_numero_positivo(cupo_audiencia):
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'message': 'El cupo debe ser un número mayor a 0'})
                 flash('El cupo debe ser un número mayor a 0', 'error')
                 return redirect(url_for('admin_editar_sesion', id=id))
-            
+
+            # Validar horas
             if not validar_horas(hora_inicio, hora_fin):
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'message': 'La hora de fin debe ser posterior a la hora de inicio'})
                 flash('La hora de fin debe ser posterior a la hora de inicio', 'error')
                 return redirect(url_for('admin_editar_sesion', id=id))
-            
+
+            # Validar fecha (no pasada)
             if not validar_fecha_no_pasada(fecha):
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'message': 'La fecha no puede ser anterior al día de hoy'})
                 flash('La fecha no puede ser anterior al día de hoy', 'error')
                 return redirect(url_for('admin_editar_sesion', id=id))
+            
+            # ============================================
+            # FIN DE VALIDACIONES
+            # ============================================
             
             # Procesar fotografía si se subió nueva
             fotografia = request.files.get('fotografia')
@@ -532,6 +555,11 @@ def admin_editar_sesion(id):
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 fotografia.save(filepath)
                 fotografia_path = f"uploads/sesiones/{filename}"
+            elif fotografia and fotografia.filename:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'message': 'El archivo de fotografía debe ser una imagen (JPG, PNG, GIF, WEBP)'})
+                flash('El archivo de fotografía debe ser una imagen (JPG, PNG, GIF, WEBP)', 'error')
+                return redirect(url_for('admin_editar_sesion', id=id))
             
             # Procesar logo si se subió nuevo
             logo = request.files.get('logo')
@@ -542,6 +570,11 @@ def admin_editar_sesion(id):
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 logo.save(filepath)
                 logo_path = f"uploads/sesiones/{filename}"
+            elif logo and logo.filename:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'message': 'El archivo de logo debe ser una imagen (JPG, PNG, GIF, WEBP)'})
+                flash('El archivo de logo debe ser una imagen (JPG, PNG, GIF, WEBP)', 'error')
+                return redirect(url_for('admin_editar_sesion', id=id))
             
             # Construir UPDATE dinámico
             with conexion.cursor() as cursor:
@@ -572,25 +605,46 @@ def admin_editar_sesion(id):
                 
                 cursor.execute(sql, params)
                 conexion.commit()
-                
+            
+            # Verificar si es petición AJAX (desde el JS)
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True, 
+                    'message': 'Sesión actualizada exitosamente'
+                })
+            
             flash('Sesión actualizada exitosamente', 'success')
             return redirect(url_for('admin_sesiones'))
             
         except Exception as e:
             conexion.rollback()
             print(f"Error al actualizar: {e}")
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': False, 
+                    'message': f'Error al actualizar: {str(e)}'
+                }), 500
+            
             flash(f'Error al actualizar: {str(e)}', 'error')
+            return redirect(url_for('admin_editar_sesion', id=id))
         finally:
             conexion.close()
     
-    # GET - Cargar datos de la sesión
+    # ============================================
+    # MÉTODO GET - Cargar datos de la sesión
+    # ============================================
     try:
         with conexion.cursor() as cursor:
             cursor.execute("SELECT * FROM sesion WHERE id_sesion = %s", (id,))
             sesion = cursor.fetchone()
             
+            if not sesion:
+                flash('Sesión no encontrada', 'error')
+                return redirect(url_for('admin_sesiones'))
+            
             # Convertir fecha para el input date
-            if sesion and sesion.get('fecha'):
+            if sesion.get('fecha'):
                 sesion['fecha_str'] = sesion['fecha'].strftime('%Y-%m-%d')
             
             # Convertir horas
@@ -605,14 +659,10 @@ def admin_editar_sesion(id):
                     return f"{horas:02d}:{minutos:02d}"
                 return str(valor)[:5] if valor else None
             
-            if sesion:
-                sesion['hora_inicio_str'] = convertir_hora(sesion.get('hora_inicio'))
-                sesion['hora_fin_str'] = convertir_hora(sesion.get('hora_fin'))
+            sesion['hora_inicio_str'] = convertir_hora(sesion.get('hora_inicio'))
+            sesion['hora_fin_str'] = convertir_hora(sesion.get('hora_fin'))
             
-            if not sesion:
-                flash('Sesión no encontrada', 'error')
-                return redirect(url_for('admin_sesiones'))
-            
+            # Cargar datos para los selects
             cursor.execute("SELECT * FROM tipo_sesion")
             tipos_sesion = cursor.fetchall()
             
@@ -621,8 +671,9 @@ def admin_editar_sesion(id):
             
             cursor.execute("SELECT id_carrera, nombre_carrera FROM carreras")
             carreras = cursor.fetchall()
+            
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error al cargar sesión: {e}")
         flash('Error al cargar la sesión', 'error')
         return redirect(url_for('admin_sesiones'))
     finally:

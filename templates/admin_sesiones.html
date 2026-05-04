@@ -13,15 +13,35 @@
 <body>
 
 <nav class="navbar">
-  <span class="navbar-brand">UES San José del Rincón</span>
-  <div class="navbar-right">
-    <button class="theme-toggle" id="themeToggle">
-        <i class="fas fa-moon"></i>
+    <!-- Logo / Título (izquierda) -->
+    <div class="navbar-logo">
+        <span class="navbar-brand">UES San José del Rincón</span>
+    </div>
+    
+    <!-- Botón hamburguesa (solo visible en móvil) -->
+    <button class="menu-toggle" id="menuToggle">
+        <span></span>
+        <span></span>
+        <span></span>
     </button>
-    <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
-    <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
-    <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">Cerrar sesión</a>
-  </div>
+    
+    <!-- Enlaces de navegación (menú) -->
+    <div class="nav-links" id="navLinks">
+        <a href="/admin/dashboard" class="nav-link">Inicio</a>
+        <a href="#" class="nav-link" data-page="usuarios">Usuarios</a>
+    </div>
+    
+    <!-- Sección derecha -->
+    <div class="navbar-right">
+        <button class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+        <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
+        <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
+        <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">
+            <i class="fas fa-sign-out-alt"></i>
+        </a>
+    </div>
 </nav>
 
 <div class="hero">
@@ -113,5 +133,6 @@
 
 <script src="/static/js/admin_sesiones.js"></script>
 <script src="/static/js/global.js"></script>
+<script src="/static/js/menu.js"></script>
 </body>
 </html>

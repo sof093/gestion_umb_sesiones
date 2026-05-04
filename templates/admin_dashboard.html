@@ -9,30 +9,43 @@
     <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style_admin_dashboard.css">
+    <link rel="stylesheet" href="/static/css/base.css">
 </head>
 <body>
     <!-- BARRA DE NAVEGACIÓN -->
-    <nav class="navbar">
-        <div class="nav-links">
-            <a href="/admin/sesiones" class="navbar-brand">Sesiones</a>
-            
-            <a href="#" class="navbar-brand" data-page="usuarios">Usuarios</a>
-        </div>
-        <div class="user-section">
-            <button class="theme-toggle" id="themeToggle">
-                <i class="fas fa-moon"></i>
-            </button>
-            <div class="user-info">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <span class="user-name" id="adminName">ADMIN</span>
-            </div>
-            <button class="logout-btn" id="logoutBtn" title="Cerrar sesión">
-                <i class="fas fa-sign-out-alt"></i>
-            </button>
-        </div>
-    </nav>
+
+<nav class="navbar">
+    <!-- Logo / Título (izquierda) -->
+    <div class="navbar-logo">
+        <span class="navbar-brand">UES San José del Rincón</span>
+    </div>
+    
+    <!-- Botón hamburguesa (solo visible en móvil) -->
+    <button class="menu-toggle" id="menuToggle">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    
+    <!-- Enlaces de navegación (menú) -->
+    <div class="nav-links" id="navLinks">
+        
+        <a href="/admin/sesiones" class="nav-link">Sesiones</a>
+        <a href="#" class="nav-link" data-page="usuarios">Usuarios</a>
+    </div>
+    
+    <!-- Sección derecha -->
+    <div class="navbar-right">
+        <button class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+        <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
+        <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
+        <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">
+            <i class="fas fa-sign-out-alt"></i>
+        </a>
+    </div>
+</nav>
 
     <!-- CONTENIDO PRINCIPAL -->
     <div class="main-container">
@@ -53,7 +66,7 @@
                     <i class="fas fa-calendar-alt" style="color: #D0A612; margin-right: 8px;"></i>
                     Total de sesiones registradas
                 </div>
-                <div class="stats-number" id="totalSesiones"></div>
+                <div class="stats-number">{{ total_sesiones }}</div>
                 <div class="stats-label">Sesiones activas en el sistema</div>
             </div>
         </div>
@@ -66,5 +79,6 @@
     </footer>
     
 <script src="/static/js/global.js"></script>
+<script src="/static/js/menu.js"></script>
 </body>
 </html>

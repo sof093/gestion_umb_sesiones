@@ -127,13 +127,6 @@ tbody tr:hover { background: #f0f6f1; }
     color: var(--blanco);
 }
 
-/* Badges de tipos */
-.badge-conferencia-magistral { background: #d6eaf4; color: #1a5278; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
-.badge-conferencia { background: #d4e6f1; color: #1b4f72; padding: 4px 12px; border-radius: 20px; }
-.badge-taller { background: #d5f5e3; color: #1e8449; padding: 4px 12px; border-radius: 20px; }
-.badge-exhibicion { background: #f3e0d0; color: #b64926; padding: 4px 12px; border-radius: 20px; }
-.badge-inauguracion { background: #fdebd0; color: #d35400; padding: 4px 12px; border-radius: 20px; }
-.badge-cierre { background: #e8d5f0; color: #6a1b9a; padding: 4px 12px; border-radius: 20px; }
 
 /* ============================================
    BOTONES DE ACCIÓN - ESTILO INSTITUCIONAL
@@ -435,54 +428,124 @@ tbody td {
 }
 
 /* ============================================
-   MODO OSCURO - MEJORAS
+   RESPONSIVE COMPLETO
    ============================================ */
-.dark-mode .btn-icon-action.view,
-.dark-mode .btn-ver {
-    background: #1a3d5c;
-    color: #7bc5ff;
+
+/* Tablets (768px y menos) */
+@media (max-width: 768px) {
+    /* Hero */
+    .hero {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.5rem;
+    }
+    
+    .hero-title {
+        font-size: 1.5rem;
+    }
+    
+    .btn-nueva {
+        padding: 0.5rem 1.2rem;
+        font-size: 0.85rem;
+    }
+    
+    /* Controles */
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.8rem;
+        padding: 1rem;
+    }
+    
+    .mostrar-group {
+        justify-content: flex-end;
+    }
+    
+    .search-wrap {
+        width: 100%;
+    }
+    
+    .select-filtro,
+    .select-mostrar {
+        width: 100%;
+    }
+    
+    /* Tabla - ocultar columnas menos importantes */
+    .tabla-wrap {
+        overflow-x: auto;
+    }
+    
+    table {
+        min-width: 600px;
+    }
+    
+    /* Opcional: ocultar columna de Escenario en móvil muy pequeño */
+    @media (max-width: 550px) {
+        thead th:nth-child(4),
+        tbody td:nth-child(4) {
+            display: none;
+        }
+    }
 }
 
-.dark-mode .btn-icon-action.edit,
-.dark-mode .btn-editar {
-    background: #5c4a1a;
-    color: #ffd966;
+/* Móviles grandes (480px y menos) */
+@media (max-width: 480px) {
+    .hero-title {
+        font-size: 1.3rem;
+    }
+    
+    .btn-nueva {
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+    }
+    
+    .controls {
+        padding: 0.8rem;
+    }
+    
+    .mostrar-group {
+        justify-content: space-between;
+    }
+    
+    .paginacion .page-btn {
+        min-width: 32px;
+        height: 32px;
+        font-size: 0.75rem;
+    }
+    
+    .paginacion-info {
+        font-size: 0.75rem;
+        padding: 6px 12px;
+    }
 }
 
-.dark-mode .btn-icon-action.delete,
-.dark-mode .btn-eliminar {
-    background: #5c1a1a;
-    color: #ff8888;
+/* Móviles pequeños (360px y menos) */
+@media (max-width: 360px) {
+    .hero {
+        padding: 0.8rem;
+    }
+    
+    .hero-title {
+        font-size: 1.1rem;
+    }
+    
+    .btn-nueva {
+        padding: 0.35rem 0.8rem;
+        font-size: 0.7rem;
+        width: 100%;
+    }
+    
+    .paginacion {
+        gap: 4px;
+    }
+    
+    .page-btn {
+        min-width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+        padding: 0 6px;
+    }
 }
-
-.dark-mode .paginacion-info {
-    background: #1a1a1a;
-    color: #c0c0c0;
-}
-
-.dark-mode .page-btn {
-    background: #1a1a1a;
-    color: #e0e0e0;
-    border-color: #3a3a3a;
-}
-
-.dark-mode .page-btn:hover:not(:disabled) {
-    background: var(--verde-oscuro);
-    color: var(--blanco);
-}
-
-.dark-mode .sesion-nombre {
-    color: #c8a84b;
-}
-
-.dark-mode .sesion-sede {
-    color: #7bc5ff;
-}
-
-.dark-mode .ponente-nombre {
-    color: #e0e0e0;
-}
-
 /* Responsive */
 @media (max-width: 700px) {
     .hero-title { font-size: 1.4rem; }

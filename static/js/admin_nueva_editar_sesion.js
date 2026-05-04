@@ -382,9 +382,20 @@ function initValidacionesTiempoReal() {
 }
 
 // Configurar evento del formulario
+// Configurar evento del formulario
 function initFormSubmit() {
     const form = document.getElementById('sesionForm');
     if (!form) return;
+    
+    // Detectar si es edición (presencia de ID en la URL)
+    const esEdicion = window.location.pathname.includes('/editar/');
+    let url = '/admin/sesion/nueva';
+    
+    if (esEdicion) {
+        // Extraer el ID de la URL: /admin/sesion/editar/5
+        const id = window.location.pathname.split('/').pop();
+        url = `/admin/sesion/editar/${id}`;
+    }
     
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -393,13 +404,13 @@ function initFormSubmit() {
         
         if (errores.length === 0) {
             const result = await Swal.fire({
-                title: '¿Guardar sesión?',
+                title: esEdicion ? '¿Actualizar sesión?' : '¿Guardar sesión?',
                 text: 'Verifique que todos los datos sean correctos',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#2d6e3e',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Sí, guardar',
+                confirmButtonText: esEdicion ? 'Sí, actualizar' : 'Sí, guardar',
                 cancelButtonText: 'Cancelar'
             });
             
@@ -407,7 +418,7 @@ function initFormSubmit() {
                 formSubmitted = true;
                 
                 Swal.fire({
-                    title: 'Guardando...',
+                    title: esEdicion ? 'Actualizando...' : 'Guardando...',
                     text: 'Por favor espere',
                     allowOutsideClick: false,
                     didOpen: () => {
@@ -418,9 +429,12 @@ function initFormSubmit() {
                 const formData = new FormData(form);
                 
                 try {
-                    const response = await fetch('/admin/sesion/nueva', {
+                    const response = await fetch(url, {
                         method: 'POST',
-                        body: formData
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
                     });
                     
                     const data = await response.json();
@@ -428,7 +442,7 @@ function initFormSubmit() {
                     if (data.success) {
                         await Swal.fire({
                             title: '¡Éxito!',
-                            text: data.message || 'Sesión registrada exitosamente',
+                            text: data.message || (esEdicion ? 'Sesión actualizada exitosamente' : 'Sesión registrada exitosamente'),
                             icon: 'success',
                             confirmButtonColor: '#2d6e3e'
                         });
@@ -436,7 +450,7 @@ function initFormSubmit() {
                     } else {
                         await Swal.fire({
                             title: 'Error',
-                            text: data.message || 'Ocurrió un error al guardar la sesión',
+                            text: data.message || (esEdicion ? 'Ocurrió un error al actualizar la sesión' : 'Ocurrió un error al guardar la sesión'),
                             icon: 'error',
                             confirmButtonColor: '#2d6e3e'
                         });
