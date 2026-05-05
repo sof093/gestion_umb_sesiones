@@ -1,3 +1,4 @@
+#app.py`
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import pymysql
 import os
@@ -7,6 +8,140 @@ from datetime import datetime, date
 from werkzeug.utils import secure_filename
 import config
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_mail import Mail, Message
+import secrets
+from datetime import datetime, timedelta
+
+# ==================== CONFIGURACIÓN DE CORREO ====================
+app = config.app
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Para Gmail
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'administradorsesionesumb@gmail.com'  # CAMBIA ESTO
+app.config['MAIL_PASSWORD'] = 'qaun eayw roid ebrp'  # CAMBIA ESTO
+app.config['MAIL_DEFAULT_SENDER'] = 'administradorsesionesumb@gmail.com'
+
+mail = Mail(app)
+
+# ==================== FUNCIONES DE CORREO ====================
+
+def enviar_correo(destinatario, asunto, cuerpo_html, cuerpo_texto=None):
+    """Función genérica para enviar correos"""
+    try:
+        msg = Message(asunto, recipients=[destinatario])
+        msg.html = cuerpo_html
+        if cuerpo_texto:
+            msg.body = cuerpo_texto
+        mail.send(msg)
+        print(f"✅ Correo enviado a {destinatario}")
+        return True
+    except Exception as e:
+        print(f"❌ Error al enviar correo a {destinatario}: {e}")
+        return False
+
+
+def enviar_credenciales_usuario(nombre, email, password_temporal, rol):
+    """Envía correo con credenciales temporales al usuario nuevo"""
+    asunto = f"Bienvenido al Sistema de Gestión UES - Credenciales de acceso"
+    
+    cuerpo_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: #1a3a2a; color: white; padding: 20px; text-align: center; }}
+            .content {{ padding: 20px; background: #f5f5f5; }}
+            .credentials {{ background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }}
+            .footer {{ text-align: center; padding: 15px; font-size: 12px; color: #777; }}
+            .badge {{ display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 12px; }}
+            .admin {{ background: #c8a84b; color: #1a3a2a; }}
+            .alumno {{ background: #2d5a3d; color: white; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>🎓 UES San José del Rincón</h2>
+                <p>Sistema de Gestión de Jornadas Académicas</p>
+            </div>
+            <div class="content">
+                <h3>¡Hola, {nombre}!</h3>
+                <p>Se ha creado tu cuenta en el sistema como 
+                   <span class="badge {'admin' if rol == 'admin' else 'alumno'}">
+                       {'Administrador' if rol == 'admin' else 'Alumno'}
+                   </span>
+                </p>
+                <p>Estas son tus credenciales de acceso temporal:</p>
+                <div class="credentials">
+                    <p><strong>📧 Correo:</strong> {email}</p>
+                    <p><strong>🔑 Contraseña temporal:</strong> <code>{password_temporal}</code></p>
+                </div>
+                <p><strong>⚠️ Importante:</strong> Al iniciar sesión por primera vez, deberás cambiar tu contraseña.</p>
+                <p><a href="http://localhost:5000/login" style="background: #1a3a2a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Iniciar sesión</a></p>
+            </div>
+            <div class="footer">
+                <p>© 2026 UES San José del Rincón - Todos los derechos reservados.</p>
+                <p>Este es un mensaje automático, por favor no responder.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return enviar_correo(email, asunto, cuerpo_html)
+
+
+def enviar_enlace_recuperacion(email, nombre, token, tipo_usuario):
+    """Envía correo con enlace para recuperar contraseña"""
+    enlace = f"http://localhost:5000/recuperar-password?token={token}&tipo={tipo_usuario}"
+    
+    asunto = "Recuperación de contraseña - UES San José del Rincón"
+    
+    cuerpo_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: #1a3a2a; color: white; padding: 20px; text-align: center; }}
+            .content {{ padding: 20px; background: #f5f5f5; }}
+            .link-box {{ background: white; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; word-break: break-all; }}
+            .footer {{ text-align: center; padding: 15px; font-size: 12px; color: #777; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>🔐 Recuperación de contraseña</h2>
+            </div>
+            <div class="content">
+                <h3>Hola, {nombre}</h3>
+                <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+                <p>Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
+                <div class="link-box">
+                    <a href="{enlace}" style="color: #1a3a2a; font-weight: bold;">Restablecer mi contraseña</a>
+                </div>
+                <p>O copia este enlace en tu navegador:</p>
+                <p style="font-size: 12px; color: #777; word-break: break-all;">{enlace}</p>
+                <p><strong>⚠️ Este enlace expirará en 24 horas.</strong></p>
+                <p>Si no solicitaste este cambio, ignora este mensaje.</p>
+            </div>
+            <div class="footer">
+                <p>© 2026 UES San José del Rincón</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return enviar_correo(email, asunto, cuerpo_html)
+
 # ==================== FUNCIONES DE VALIDACIÓN ====================
 
 def validar_solo_letras(texto):
@@ -75,44 +210,76 @@ def index():
     """Página de inicio de sesión"""
     return render_template('index.html')
 
-@app.route('/login_admin', methods=['POST'])
-def login_admin():
-    """Autenticación del administrador"""
-    email = request.form.get('usuario')  # Ahora es email, no número empleado
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login que detecta automáticamente si es admin o alumno"""
+    if request.method == 'GET':
+        return render_template('index.html')
+    
+    email = request.form.get('email')
     password = request.form.get('password')
     
+    if not email or not password:
+        flash('Todos los campos son requeridos', 'error')
+        return redirect(url_for('login'))
+    
     conexion = config.conectar_db()
-    if not conexion:
-        flash('Error de conexión a la base de datos', 'error')
-        return redirect(url_for('index'))
     
     try:
         with conexion.cursor() as cursor:
-            # CAMBIO IMPORTANTE: Buscar por email y NO comparar password aquí
-            sql = "SELECT * FROM administrador WHERE email = %s"
-            cursor.execute(sql, (email,))
+            # ============================================
+            # 1. BUSCAR EN TABLA ADMINISTRADOR
+            # ============================================
+            cursor.execute("SELECT * FROM administrador WHERE email = %s", (email,))
             admin = cursor.fetchone()
             
-            if admin:
-                # VERIFICAR CONTRASEÑA CON HASH
-                if check_password_hash(admin['password'], password):
-                    session['admin_logged'] = True
-                    session['admin_id'] = admin['id_control']
-                    session['admin_nombre'] = admin['nombre_admin']
-                    session['admin_email'] = admin['email']  # Guardar email
-                    flash(f'Bienvenido {admin["nombre_admin"]}', 'success')
-                    return redirect(url_for('admin_dashboard'))
-                else:
-                    flash('Contraseña incorrecta', 'error')
-            else:
-                flash('Credenciales incorrectas', 'error')
-            return redirect(url_for('index'))
+            if admin and check_password_hash(admin['password'], password):
+                # Es ADMINISTRADOR
+                session.clear()
+                session['user_id'] = admin['id_control']
+                session['user_nombre'] = admin['nombre_admin']
+                session['user_email'] = admin['email']
+                session['user_tipo'] = 'admin'
+                session['admin_logged'] = True
+                
+                flash(f'Bienvenido Administrador {admin["nombre_admin"]}', 'success')
+                return redirect(url_for('admin_dashboard'))
+            
+            # ============================================
+            # 2. BUSCAR EN TABLA ALUMNOS
+            # ============================================
+            cursor.execute("SELECT * FROM alumnos WHERE correo_electronico = %s", (email,))
+            alumno = cursor.fetchone()
+            
+            if alumno and check_password_hash(alumno['password'], password):
+                # Es ALUMNO
+                session.clear()
+                session['user_id'] = alumno['id_alumno']
+                session['user_nombre'] = f"{alumno['nombre_alumno']} {alumno['apellido_paterno']}"
+                session['user_email'] = alumno['correo_electronico']
+                session['user_tipo'] = 'alumno'
+                
+                # Si es primer login, redirigir a cambiar contraseña
+                if alumno.get('primer_login', True):
+                    flash('Es tu primer inicio de sesión. Debes cambiar tu contraseña.', 'warning')
+                    return redirect(url_for('cambiar_password'))
+                
+                flash(f'Bienvenido {alumno["nombre_alumno"]}', 'success')
+                return redirect(url_for('alumno_dashboard'))
+            
+            # ============================================
+            # 3. NO EXISTE EN NINGUNA TABLA
+            # ============================================
+            flash('Credenciales incorrectas. Verifica tu correo y contraseña.', 'error')
+            
     except Exception as e:
         print(f"Error en login: {e}")
         flash('Error al iniciar sesión', 'error')
-        return redirect(url_for('index'))
     finally:
         conexion.close()
+    
+    return redirect(url_for('login'))
+
 
 @app.route('/logout')
 def logout():
@@ -866,28 +1033,35 @@ def test_sesiones():
     finally:
         conexion.close()
 
-@app.route('/admin/usuario/nuevo', methods=['POST'])
-def admin_nuevo_usuario():
-    """Crear nuevo usuario (alumno o administrador)"""
-    if not session.get('user_tipo') == 'admin':
-        return jsonify({'success': False, 'message': 'No autorizado'})
+# ==================== API PARA USUARIOS ====================
+
+@app.route('/api/usuarios', methods=['POST'])
+def api_crear_usuario():
+    """API para crear nuevo usuario CON ENVÍO DE CORREO"""
+    if not session.get('admin_logged') and not session.get('user_tipo') == 'admin':
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
     
-    tipo = request.form.get('tipo_usuario')  # ← EL ROL SE SELECCIONA
-    nombre = request.form.get('nombre')
-    apellido_paterno = request.form.get('apellido_paterno')
-    apellido_materno = request.form.get('apellido_materno')
-    email = request.form.get('email')
+    data = request.get_json()
+    rol = data.get('rol')
+    nombre = data.get('nombre')
+    apellido_paterno = data.get('apellido_paterno')
+    apellido_materno = data.get('apellido_materno', '')
+    correo = data.get('correo')
     
+    if not nombre or not apellido_paterno or not correo:
+        return jsonify({'success': False, 'message': 'Faltan campos requeridos'})
+    
+    nombre_completo = f"{nombre} {apellido_paterno} {apellido_materno}".strip()
     conexion = config.conectar_db()
     
     try:
-        if tipo == 'alumno':
-            # Insertar en tabla ALUMNOS
-            matricula = request.form.get('matricula')
-            id_carrera = request.form.get('id_carrera')
-            genero = request.form.get('genero')
+        if rol == 'alumno':
+            matricula = data.get('matricula')
+            id_carrera = data.get('id_carrera')
             
-            # Contraseña temporal = matrícula
+            if not matricula:
+                return jsonify({'success': False, 'message': 'La matrícula es requerida'})
+            
             password_temporal = matricula
             hashed_password = generate_password_hash(password_temporal)
             
@@ -895,21 +1069,22 @@ def admin_nuevo_usuario():
                 sql = """
                     INSERT INTO alumnos 
                     (nombre_alumno, apellido_paterno, apellido_materno, 
-                     correo_electronico, matricula, password, id_carrera, genero,
-                     primer_login)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+                     correo_electronico, matricula, password, id_carrera, primer_login)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE)
                 """
                 cursor.execute(sql, (nombre, apellido_paterno, apellido_materno, 
-                                    email, matricula, hashed_password, id_carrera, genero))
+                                    correo, matricula, hashed_password, id_carrera))
                 conexion.commit()
+            
+            # ✉️ ENVIAR CORREO AL ALUMNO
+            enviar_credenciales_usuario(nombre_completo, correo, password_temporal, 'alumno')
             
             return jsonify({
                 'success': True, 
-                'message': f'Alumno creado. Contraseña temporal: {password_temporal}'
+                'message': f'Alumno creado. Se ha enviado la contraseña temporal al correo.'
             })
         
-        elif tipo == 'admin':
-            # Insertar en tabla ADMINISTRADOR
+        elif rol == 'admin':
             password_temporal = 'Admin123'
             hashed_password = generate_password_hash(password_temporal)
             
@@ -920,23 +1095,322 @@ def admin_nuevo_usuario():
                     VALUES (%s, %s, %s, %s, %s)
                 """
                 cursor.execute(sql, (nombre, apellido_paterno, apellido_materno, 
-                                    email, hashed_password))
+                                    correo, hashed_password))
                 conexion.commit()
+            
+            # ✉️ ENVIAR CORREO AL ADMINISTRADOR
+            enviar_credenciales_usuario(nombre_completo, correo, password_temporal, 'admin')
             
             return jsonify({
                 'success': True, 
-                'message': f'Administrador creado. Contraseña temporal: {password_temporal}'
+                'message': f'Administrador creado. Se ha enviado la contraseña temporal al correo.'
             })
         
         else:
-            return jsonify({'success': False, 'message': 'Tipo de usuario no válido'})
+            return jsonify({'success': False, 'message': 'Rol no válido'})
             
     except Exception as e:
         conexion.rollback()
         return jsonify({'success': False, 'message': str(e)})
     finally:
         conexion.close()
-        
+@app.route('/api/usuarios', methods=['GET'])
+def api_usuarios():
+    """API para obtener todos los usuarios (alumnos + administradores)"""
+    if not session.get('admin_logged') and not session.get('user_tipo') == 'admin':
+        return jsonify({'error': 'No autorizado'}), 401
+    
+    conexion = config.conectar_db()
+    usuarios = []
+    
+    try:
+        with conexion.cursor() as cursor:
+            # Obtener alumnos
+            cursor.execute("""
+                SELECT 
+                    a.id_alumno as id,
+                    a.nombre_alumno as nombre,
+                    a.apellido_paterno,
+                    a.apellido_materno,
+                    a.correo_electronico as correo,
+                    a.matricula,
+                    a.id_carrera,
+                    a.primer_login,
+                    c.nombre_carrera,
+                    'alumno' as rol
+                FROM alumnos a
+                LEFT JOIN carreras c ON a.id_carrera = c.id_carrera
+                ORDER BY a.id_alumno DESC
+            """)
+            alumnos = cursor.fetchall()
+            
+            for alumno in alumnos:
+                usuarios.append(dict(alumno))
+            
+            # Obtener administradores
+            cursor.execute("""
+                SELECT 
+                    id_control as id,
+                    nombre_admin as nombre,
+                    apellido_paterno,
+                    apellido_materno,
+                    email as correo,
+                    'admin' as rol
+                FROM administrador
+                ORDER BY id_control DESC
+            """)
+            admins = cursor.fetchall()
+            
+            for admin in admins:
+                usuarios.append(dict(admin))
+            
+    except Exception as e:
+        print(f"Error api_usuarios: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conexion.close()
+    
+    return jsonify(usuarios)
 
+@app.route('/api/usuarios/<int:id>', methods=['GET'])
+def api_usuario_by_id(id):
+    """API para obtener un usuario específico"""
+    if not session.get('admin_logged') and not session.get('user_tipo') == 'admin':
+        return jsonify({'error': 'No autorizado'}), 401
+    
+    rol = request.args.get('rol')
+    conexion = config.conectar_db()
+    
+    try:
+        with conexion.cursor() as cursor:
+            if rol == 'alumno':
+                cursor.execute("""
+                    SELECT 
+                        a.id_alumno as id,
+                        a.nombre_alumno as nombre,
+                        a.apellido_paterno,
+                        a.apellido_materno,
+                        a.correo_electronico as correo,
+                        a.matricula,
+                        a.id_carrera,
+                        a.primer_login,
+                        c.nombre_carrera,
+                        'alumno' as rol
+                    FROM alumnos a
+                    LEFT JOIN carreras c ON a.id_carrera = c.id_carrera
+                    WHERE a.id_alumno = %s
+                """, (id,))
+            else:
+                cursor.execute("""
+                    SELECT 
+                        id_control as id,
+                        nombre_admin as nombre,
+                        apellido_paterno,
+                        apellido_materno,
+                        email as correo,
+                        'admin' as rol
+                    FROM administrador
+                    WHERE id_control = %s
+                """, (id,))
+            
+            usuario = cursor.fetchone()
+            
+            if not usuario:
+                return jsonify({'error': 'Usuario no encontrado'}), 404
+            
+            return jsonify(dict(usuario))
+            
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conexion.close()
+
+
+
+@app.route('/api/usuarios/<int:id>', methods=['PUT'])
+def api_actualizar_usuario(id):
+    """API para actualizar usuario"""
+    if not session.get('admin_logged') and not session.get('user_tipo') == 'admin':
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    data = request.get_json()
+    rol = data.get('rol')
+    nombre = data.get('nombre')
+    apellido_paterno = data.get('apellido_paterno')
+    apellido_materno = data.get('apellido_materno', '')
+    correo = data.get('correo')
+    
+    conexion = config.conectar_db()
+    
+    try:
+        if rol == 'alumno':
+            matricula = data.get('matricula')
+            id_carrera = data.get('id_carrera')
+            
+            with conexion.cursor() as cursor:
+                sql = """
+                    UPDATE alumnos SET
+                        nombre_alumno = %s,
+                        apellido_paterno = %s,
+                        apellido_materno = %s,
+                        correo_electronico = %s,
+                        matricula = %s,
+                        id_carrera = %s
+                    WHERE id_alumno = %s
+                """
+                cursor.execute(sql, (nombre, apellido_paterno, apellido_materno,
+                                    correo, matricula, id_carrera, id))
+                conexion.commit()
+        
+        elif rol == 'admin':
+            with conexion.cursor() as cursor:
+                sql = """
+                    UPDATE administrador SET
+                        nombre_admin = %s,
+                        apellido_paterno = %s,
+                        apellido_materno = %s,
+                        email = %s
+                    WHERE id_control = %s
+                """
+                cursor.execute(sql, (nombre, apellido_paterno, apellido_materno,
+                                    correo, id))
+                conexion.commit()
+        
+        else:
+            return jsonify({'success': False, 'message': 'Rol no válido'})
+        
+        return jsonify({'success': True, 'message': 'Usuario actualizado correctamente'})
+        
+    except Exception as e:
+        conexion.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conexion.close()
+
+
+@app.route('/api/usuarios/<int:id>', methods=['DELETE'])
+def api_eliminar_usuario(id):
+    """API para eliminar usuario"""
+    if not session.get('admin_logged') and not session.get('user_tipo') == 'admin':
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    rol = request.args.get('rol')
+    conexion = config.conectar_db()
+    
+    try:
+        with conexion.cursor() as cursor:
+            if rol == 'alumno':
+                cursor.execute("DELETE FROM alumnos WHERE id_alumno = %s", (id,))
+            else:
+                cursor.execute("DELETE FROM administrador WHERE id_control = %s", (id,))
+            conexion.commit()
+        
+        return jsonify({'success': True, 'message': 'Usuario eliminado'})
+        
+    except Exception as e:
+        conexion.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+    finally:
+        conexion.close()
+
+
+@app.route('/admin/usuarios', methods=['GET'])
+def admin_usuarios_lista():
+    """Página de gestión de usuarios"""
+    if not session.get('admin_logged') and not session.get('user_tipo') == 'admin':
+        flash('Acceso no autorizado', 'error')
+        return redirect(url_for('login'))
+    
+    conexion = config.conectar_db()
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("SELECT id_carrera, nombre_carrera FROM carreras")
+            carreras = cursor.fetchall()
+    except Exception as e:
+        print(f"Error: {e}")
+        carreras = []
+    finally:
+        conexion.close()
+    
+    return render_template('admin_usuarios.html', carreras=carreras)
+
+@app.route('/olvide-password', methods=['GET', 'POST'])
+def olvide_password():
+    """Solicitar recuperación de contraseña"""
+    if request.method == 'POST':
+        email = request.form.get('email')
+        tipo = request.form.get('tipo', 'alumno')  # Para distinguir si es admin o alumno
+        
+        if not email:
+            flash('Ingresa tu correo electrónico', 'error')
+            return redirect(url_for('olvide_password'))
+        
+        conexion = config.conectar_db()
+        usuario = None
+        usuario_nombre = None
+        usuario_id = None
+        rol_detectado = None
+        
+        try:
+            with conexion.cursor() as cursor:
+                # Buscar en administradores
+                cursor.execute("SELECT * FROM administrador WHERE email = %s", (email,))
+                admin = cursor.fetchone()
+                
+                if admin:
+                    usuario_id = admin['id_control']
+                    usuario_nombre = admin['nombre_admin']
+                    rol_detectado = 'admin'
+                else:
+                    # Buscar en alumnos
+                    cursor.execute("SELECT * FROM alumnos WHERE correo_electronico = %s", (email,))
+                    alumno = cursor.fetchone()
+                    if alumno:
+                        usuario_id = alumno['id_alumno']
+                        usuario_nombre = f"{alumno['nombre_alumno']} {alumno['apellido_paterno']}"
+                        rol_detectado = 'alumno'
+                
+                if usuario_id:
+                    # Generar token único
+                    token = secrets.token_urlsafe(32)
+                    fecha_expiracion = datetime.now() + timedelta(hours=24)
+                    
+                    # Guardar token en tabla (crear tabla si no existe)
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS recuperacion_password (
+                            id_recuperacion INT AUTO_INCREMENT PRIMARY KEY,
+                            usuario_id INT NOT NULL,
+                            tipo_usuario ENUM('admin', 'alumno') NOT NULL,
+                            token VARCHAR(100) NOT NULL UNIQUE,
+                            fecha_solicitud DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            fecha_expiracion DATETIME,
+                            usado BOOLEAN DEFAULT FALSE
+                        )
+                    """)
+                    
+                    cursor.execute("""
+                        INSERT INTO recuperacion_password 
+                        (usuario_id, tipo_usuario, token, fecha_expiracion)
+                        VALUES (%s, %s, %s, %s)
+                    """, (usuario_id, rol_detectado, token, fecha_expiracion))
+                    conexion.commit()
+                    
+                    # ✉️ ENVIAR CORREO DE RECUPERACIÓN
+                    enviar_enlace_recuperacion(email, usuario_nombre, token, rol_detectado)
+                    flash('Se ha enviado un enlace de recuperación a tu correo electrónico.', 'success')
+                else:
+                    # Por seguridad, no revelar si el correo existe o no
+                    flash('Si el correo está registrado, recibirás un enlace de recuperación.', 'info')
+                    
+        except Exception as e:
+            print(f"Error en recuperación: {e}")
+            flash('Error al procesar la solicitud', 'error')
+        finally:
+            conexion.close()
+        
+        return redirect(url_for('login'))
+    
+    return render_template('olvide_password.html')
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

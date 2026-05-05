@@ -1,0 +1,106 @@
+<!-- admin_usuarios_nuevos.html -->
+<div class="form-container">
+    <div class="form-header">
+        <h2>Registrar Nuevo Usuario</h2>
+    </div>
+    
+    <form id="usuarioForm">
+        <!-- CAMPO ROL - IMPORTANTE -->
+        <div class="form-group">
+            <label>Tipo de usuario *</label>
+            <select name="tipo_usuario" id="tipo_usuario" required>
+                <option value="">Seleccione un rol</option>
+                <option value="alumno">🎓 Alumno</option>
+                <option value="admin">👑 Administrador</option>
+            </select>
+        </div>
+        
+        <!-- Campos comunes -->
+        <div class="form-row">
+            <div class="form-group">
+                <label>Nombre(s) *</label>
+                <input type="text" name="nombre" id="nombre" required>
+            </div>
+            <div class="form-group">
+                <label>Apellido Paterno *</label>
+                <input type="text" name="apellido_paterno" id="apellido_paterno" required>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Apellido Materno</label>
+                <input type="text" name="apellido_materno" id="apellido_materno">
+            </div>
+            <div class="form-group">
+                <label>Correo electrónico *</label>
+                <input type="email" name="email" id="email" required>
+            </div>
+        </div>
+        
+        <!-- Campos SOLO para Alumnos (se muestran al seleccionar "Alumno") -->
+        <div id="campos_alumno" style="display: none;">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Matrícula *</label>
+                    <input type="text" name="matricula" id="matricula">
+                    <small>La matrícula será la contraseña temporal</small>
+                </div>
+                <div class="form-group">
+                    <label>Carrera *</label>
+                    <select name="id_carrera" id="id_carrera">
+                        <option value="">Seleccione una carrera</option>
+                        {% for carrera in carreras %}
+                            <option value="{{ carrera.id_carrera }}">{{ carrera.nombre_carrera }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Género</label>
+                    <select name="genero" id="genero">
+                        <option value="">Seleccione</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Femenino</option>
+                        <option value="O">Otro</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mensaje informativo -->
+        <div id="info_contraseña" class="info-message" style="display: none;">
+            <i class="fas fa-info-circle"></i>
+            <span>La contraseña temporal será generada automáticamente</span>
+        </div>
+        
+        <div class="modal-footer">
+            <button type="button" class="btn-cancelar" id="btnCancelar">Cancelar</button>
+            <button type="submit" class="btn-guardar">Registrar usuario</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Mostrar/ocultar campos según el rol seleccionado
+    document.getElementById('tipo_usuario').addEventListener('change', function() {
+        const camposAlumno = document.getElementById('campos_alumno');
+        const infoContraseña = document.getElementById('info_contraseña');
+        
+        if (this.value === 'alumno') {
+            camposAlumno.style.display = 'block';
+            infoContraseña.style.display = 'block';
+            // Hacer campos requeridos
+            document.getElementById('matricula').required = true;
+            document.getElementById('id_carrera').required = true;
+        } else {
+            camposAlumno.style.display = 'none';
+            infoContraseña.style.display = 'none';
+            // Quitar required
+            document.getElementById('matricula').required = false;
+            document.getElementById('id_carrera').required = false;
+        }
+    });
+</script>

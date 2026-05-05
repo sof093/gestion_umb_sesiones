@@ -1,106 +1,237 @@
-<!-- admin_nuevo_usuario.html -->
-<div class="form-container">
-    <div class="form-header">
-        <h2>Registrar Nuevo Usuario</h2>
+<!--admin_usuarios.html-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Usuarios — UES San José del Rincón</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/admin_usuarios.css">
+<link rel="stylesheet" href="/static/css/base.css">
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-logo">
+        <span class="navbar-brand">UES San José del Rincón</span>
     </div>
-    
-    <form id="usuarioForm">
-        <!-- CAMPO ROL - IMPORTANTE -->
-        <div class="form-group">
-            <label>Tipo de usuario *</label>
-            <select name="tipo_usuario" id="tipo_usuario" required>
-                <option value="">Seleccione un rol</option>
-                <option value="alumno">🎓 Alumno</option>
-                <option value="admin">👑 Administrador</option>
-            </select>
-        </div>
-        
-        <!-- Campos comunes -->
-        <div class="form-row">
-            <div class="form-group">
-                <label>Nombre(s) *</label>
-                <input type="text" name="nombre" id="nombre" required>
-            </div>
-            <div class="form-group">
-                <label>Apellido Paterno *</label>
-                <input type="text" name="apellido_paterno" id="apellido_paterno" required>
-            </div>
-        </div>
-        
-        <div class="form-row">
-            <div class="form-group">
-                <label>Apellido Materno</label>
-                <input type="text" name="apellido_materno" id="apellido_materno">
-            </div>
-            <div class="form-group">
-                <label>Correo electrónico *</label>
-                <input type="email" name="email" id="email" required>
-            </div>
-        </div>
-        
-        <!-- Campos SOLO para Alumnos (se muestran al seleccionar "Alumno") -->
-        <div id="campos_alumno" style="display: none;">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Matrícula *</label>
-                    <input type="text" name="matricula" id="matricula">
-                    <small>La matrícula será la contraseña temporal</small>
-                </div>
-                <div class="form-group">
-                    <label>Carrera *</label>
-                    <select name="id_carrera" id="id_carrera">
-                        <option value="">Seleccione una carrera</option>
-                        {% for carrera in carreras %}
-                            <option value="{{ carrera.id_carrera }}">{{ carrera.nombre_carrera }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Género</label>
-                    <select name="genero" id="genero">
-                        <option value="">Seleccione</option>
-                        <option value="M">Masculino</option>
-                        <option value="F">Femenino</option>
-                        <option value="O">Otro</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Mensaje informativo -->
-        <div id="info_contraseña" class="info-message" style="display: none;">
-            <i class="fas fa-info-circle"></i>
-            <span>La contraseña temporal será generada automáticamente</span>
-        </div>
-        
-        <div class="modal-footer">
-            <button type="button" class="btn-cancelar" id="btnCancelar">Cancelar</button>
-            <button type="submit" class="btn-guardar">Registrar usuario</button>
-        </div>
-    </form>
+    <button class="menu-toggle" id="menuToggle">
+        <span></span><span></span><span></span>
+    </button>
+    <div class="nav-links" id="navLinks">
+        <a href="/admin/dashboard" class="nav-link">Inicio</a>
+        <a href="/admin/sesiones" class="nav-link">Sesiones</a>
+    </div>
+    <div class="navbar-right">
+        <button class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+        <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
+        <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
+        <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">
+            <i class="fas fa-sign-out-alt"></i>
+        </a>
+    </div>
+</nav>
+
+<div class="hero">
+    <h1 class="hero-title">Gestión de usuarios</h1>
+    <button class="btn-nueva" id="btnNuevoUsuario">
+        <i class="fas fa-user-plus"></i> Nuevo usuario
+    </button>
 </div>
 
-<script>
-    // Mostrar/ocultar campos según el rol seleccionado
-    document.getElementById('tipo_usuario').addEventListener('change', function() {
-        const camposAlumno = document.getElementById('campos_alumno');
-        const infoContraseña = document.getElementById('info_contraseña');
-        
-        if (this.value === 'alumno') {
-            camposAlumno.style.display = 'block';
-            infoContraseña.style.display = 'block';
-            // Hacer campos requeridos
-            document.getElementById('matricula').required = true;
-            document.getElementById('id_carrera').required = true;
-        } else {
-            camposAlumno.style.display = 'none';
-            infoContraseña.style.display = 'none';
-            // Quitar required
-            document.getElementById('matricula').required = false;
-            document.getElementById('id_carrera').required = false;
-        }
-    });
-</script>
+<main class="main">
+
+    <!-- CONTROLES -->
+    <div class="controls">
+        <div class="mostrar-group">
+            <span>Mostrar</span>
+            <select class="select-mostrar" id="selectMostrar">
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+            <span>usuarios</span>
+        </div>
+
+        <div class="search-wrap">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+            </svg>
+            <input type="text" id="buscarInput" class="search-input" placeholder="Buscar por nombre, correo o matrícula">
+        </div>
+
+        <select class="select-filtro" id="selectFiltroRol">
+            <option value="">Todos los roles</option>
+            <option value="alumno">Alumno</option>
+            <option value="admin">Administrador</option>
+        </select>
+
+        <select class="select-filtro" id="selectFiltroCarrera">
+            <option value="">Todas las carreras</option>
+        </select>
+    </div>
+
+    <!-- TABLA -->
+    <div class="tabla-wrap">
+        <table id="tablaUsuarios">
+            <thead>
+                <tr>
+                    <th>Nº</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Matrícula / N° Control</th>
+                    <th>Carrera</th>
+                    <th>Rol</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaCuerpo">
+                <tr>
+                    <td colspan="7" class="cargando-td">
+                        <i class="fas fa-spinner fa-spin"></i> Cargando usuarios...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="paginacion-wrap" id="paginacionWrap"></div>
+    </div>
+</main>
+
+
+<!-- ══════════════════════════════════════════
+     MODAL: VER DETALLE
+═══════════════════════════════════════════ -->
+<div id="modalVerUsuario" class="modal-overlay">
+    <div class="modal-container modal-sm">
+        <div class="modal-header">
+            <h2 class="modal-title"><i class="fas fa-id-card"></i> Detalle del usuario</h2>
+            <button class="modal-close" onclick="cerrarModalVer()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" id="modalVerBody"></div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     MODAL: NUEVO / EDITAR USUARIO
+═══════════════════════════════════════════ -->
+<div id="modalFormUsuario" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalFormTitulo">
+                <i class="fas fa-user-plus"></i> Nuevo usuario
+            </h2>
+            <button class="modal-close" onclick="cerrarModalForm()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="formUsuario" autocomplete="off">
+                <input type="hidden" id="formUserId" value="">
+                <input type="hidden" id="formModoEdicion" value="0">
+
+                <!-- Selector de rol (solo en creación) -->
+                <div class="form-group" id="grupoRol">
+                    <label>Rol del usuario</label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="rol" value="alumno" checked
+                                   onchange="onCambioRol('alumno')">
+                            <span><i class="fas fa-user-graduate"></i> Alumno</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="rol" value="admin"
+                                   onchange="onCambioRol('admin')">
+                            <span><i class="fas fa-user-shield"></i> Administrador</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Datos personales -->
+                <div class="form-section-title">Datos personales</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="inputNombre">Nombre(s) <span class="req">*</span></label>
+                        <input type="text" id="inputNombre" class="form-control"
+                               placeholder="Ej. Juan Carlos" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inputApellidoP">Apellido paterno <span class="req">*</span></label>
+                        <input type="text" id="inputApellidoP" class="form-control"
+                               placeholder="Ej. García" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="inputApellidoM">Apellido materno</label>
+                        <input type="text" id="inputApellidoM" class="form-control"
+                               placeholder="Ej. López">
+                    </div>
+                    <div class="form-group">
+                        <label for="inputCorreo">Correo electrónico <span class="req">*</span></label>
+                        <input type="email" id="inputCorreo" class="form-control"
+                               placeholder="usuario@ejemplo.com" required>
+                    </div>
+                </div>
+
+                <!-- Campos exclusivos de Alumno -->
+                <div id="camposAlumno">
+                    <div class="form-section-title">Datos académicos</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="inputMatricula">Matrícula <span class="req">*</span></label>
+                            <input type="text" id="inputMatricula" class="form-control"
+                                   placeholder="Ej. 13220048" maxlength="20">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputCarrera">Carrera <span class="req">*</span></label>
+                            <select id="inputCarrera" class="form-control">
+                                <option value="">Selecciona una carrera</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-hint">
+                        <i class="fas fa-envelope"></i>
+                        Se generará una contraseña aleatoria y se enviará automáticamente
+                        al correo del alumno al registrarlo.
+                    </div>
+                </div>
+
+                <!-- Campos exclusivos de Admin -->
+                <div id="camposAdmin" style="display:none;">
+                    <div class="form-hint" id="hintAdmin">
+                        <i class="fas fa-envelope"></i>
+                        Se generará una contraseña aleatoria y se enviará al correo del administrador.
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancelar" onclick="cerrarModalForm()">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-guardar" id="btnGuardarUsuario">
+                        <i class="fas fa-save"></i> <span id="btnGuardarTexto">Guardar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<footer>
+    <strong>© 2026 UES San José del Rincón</strong><br>
+    Gestión de la jornada académica y cultural<br>
+    Todos los derechos reservados.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="/static/js/admin_usuarios.js"></script>
+<script src="/static/js/global.js"></script>
+<script src="/static/js/menu.js"></script>
+</body>
+</html>

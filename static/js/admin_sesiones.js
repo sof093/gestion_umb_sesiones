@@ -1,4 +1,4 @@
-
+//admin_sesiones.js
     // Variables globales
     let todasLasSesiones = [];
     let currentPage = 1;

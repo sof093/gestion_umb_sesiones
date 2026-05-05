@@ -1,77 +1,76 @@
+<!--index.html-->
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión | UES San José del Rincón</title>
-    <!-- Fuentes -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Merriweather:wght@700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/index.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-    <button id="themeToggleLogin" style="position: fixed; top: 20px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; z-index: 1000;">
+    <button id="themeToggleLogin" class="theme-toggle-btn">
         <i class="fas fa-moon"></i>
     </button>
-<div class="split-container">
-    <!-- LADO IZQUIERDO (VERDE OSCURO) -->
-    <div class="left-side">
-        <div class="left-content">
-            <div class="main-title">
-                Sistema de gestión<br>
-                para la jornada<br>
-                académica y cultural
-            </div>
-            <div class="title-line"></div>
-            <div class="subtitle">
-                Impulsando la participación activa<br>
-                y el compromiso con nuestra<br>
-                comunidad universitaria.
-            </div>
-            <div class="institution">
-                <span class="hat-icon">🎓</span>
-                Unidad de Estudios Superiores<br>San José del Rincón
+
+    <div class="split-container">
+        <div class="left-side">
+            <div class="left-content">
+                <div class="main-title">
+                    Sistema de gestión<br>
+                    para la jornada<br>
+                    académica y cultural
+                </div>
+                <div class="title-line"></div>
+                <div class="subtitle">
+                    Impulsando la participación activa<br>
+                    y el compromiso con nuestra<br>
+                    comunidad universitaria.
+                </div>
+                <div class="institution">
+                    <span class="hat-icon">🎓</span>
+                    Unidad de Estudios Superiores<br>San José del Rincón
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- LADO DERECHO (IMAGEN + RECUADRO BLANCO OPACO) -->
-    <div class="right-side">
-        <div class="glass-card">
-            <!-- CABECERA VERDE AGREGADA -->
-            <div class="form-green-header">
-                
-                Ingrese sus credenciales institucionales
-            </div>
-            
-            <div class="login-title"></div>
-            <div class="login-sub"></div>
+        <div class="right-side">
+            <div class="glass-card">
+                <div class="form-green-header">
+                    Ingrese sus credenciales institucionales
+                </div>
 
-            <div class="flash-messages">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
+                <div class="flash-messages">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
                         {% for category, message in messages %}
                             <div class="flash-message flash-{{ category }}">{{ message }}</div>
                         {% endfor %}
-                    {% endif %}
-                {% endwith %}
-            </div>
+                    {% endwith %}
+                </div>
 
-            <form method="POST" action="{{ url_for('login_admin') }}">
-                <div class="form-group">
-                    <label>Usuario</label>
-                    <input type="text" name="usuario" placeholder="Ej. Kaplan@example.com" required>
+                <form method="POST" action="{{ url_for('login') }}">
+                    <div class="form-group">
+                        <label>Correo electrónico</label>
+                        <input type="email" name="email" class="form-control" placeholder="ejemplo@universidad.edu" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                    </div>
+
+                    <button type="submit" class="btn-login">Iniciar Sesión</button>
+                </form>
+
+                <div class="login-links">
+                    <a href="{{ url_for('olvide_password') }}">¿Olvidaste tu contraseña?</a>
                 </div>
-                <div class="form-group">
-                    <label>Contraseña</label>
-                    <input type="password" name="password" placeholder="***************" required>
-                </div>
-                <button type="submit" class="btn-login">Iniciar sesión</button>
-            </form>
+            </div>
         </div>
     </div>
-</div>
-<script src="/static/js/global.js"></script>
-</body>
 
+    <script src="/static/js/global.js"></script>
+</body>
 </html>
