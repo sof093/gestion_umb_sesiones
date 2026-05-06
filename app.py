@@ -11,6 +11,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mail import Mail, Message
 import secrets
 from datetime import datetime, timedelta
+import secrets
+from datetime import datetime, timedelta
 
 # ==================== CONFIGURACIÓN DE CORREO ====================
 app = config.app
@@ -242,6 +244,11 @@ def login():
                 session['user_tipo'] = 'admin'
                 session['admin_logged'] = True
                 
+                # ✅ Verificar primer login
+                if admin.get('primer_login', True):
+                    flash('Es tu primer inicio de sesión. Debes cambiar tu contraseña.', 'warning')
+                    return redirect(url_for('cambiar_password'))
+                
                 flash(f'Bienvenido Administrador {admin["nombre_admin"]}', 'success')
                 return redirect(url_for('admin_dashboard'))
             
@@ -259,7 +266,7 @@ def login():
                 session['user_email'] = alumno['correo_electronico']
                 session['user_tipo'] = 'alumno'
                 
-                # Si es primer login, redirigir a cambiar contraseña
+                # ✅ Verificar primer login
                 if alumno.get('primer_login', True):
                     flash('Es tu primer inicio de sesión. Debes cambiar tu contraseña.', 'warning')
                     return redirect(url_for('cambiar_password'))
@@ -1091,8 +1098,8 @@ def api_crear_usuario():
             with conexion.cursor() as cursor:
                 sql = """
                     INSERT INTO administrador 
-                    (nombre_admin, apellido_paterno, apellido_materno, email, password)
-                    VALUES (%s, %s, %s, %s, %s)
+                    (nombre_admin, apellido_paterno, apellido_materno, email, password, primer_login)
+                    VALUES (%s, %s, %s, %s, %s, TRUE)
                 """
                 cursor.execute(sql, (nombre, apellido_paterno, apellido_materno, 
                                     correo, hashed_password))
@@ -1155,6 +1162,7 @@ def api_usuarios():
                     apellido_paterno,
                     apellido_materno,
                     email as correo,
+                    primer_login,
                     'admin' as rol
                 FROM administrador
                 ORDER BY id_control DESC
@@ -1208,6 +1216,7 @@ def api_usuario_by_id(id):
                         apellido_paterno,
                         apellido_materno,
                         email as correo,
+                        primer_login,
                         'admin' as rol
                     FROM administrador
                     WHERE id_control = %s
@@ -1410,7 +1419,99 @@ def olvide_password():
             conexion.close()
         
         return redirect(url_for('login'))
+        
     
     return render_template('olvide_password.html')
+
+@app.route('/cambiar-password', methods=['GET', 'POST'])
+def cambiar_password():
+    """Cambiar contraseña (primer login o voluntario)"""
+    if not session.get('user_id'):
+        flash('Debes iniciar sesión primero', 'warning')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        nueva_password = request.form.get('nueva_password')
+        confirmar_password = request.form.get('confirmar_password')
+        
+        if not nueva_password or not confirmar_password:
+            flash('Todos los campos son requeridos', 'error')
+            return redirect(url_for('cambiar_password'))
+        
+        if nueva_password != confirmar_password:
+            flash('Las contraseñas no coinciden', 'error')
+            return redirect(url_for('cambiar_password'))
+        
+        # ============================================
+        # VALIDACIÓN DE CONTRASEÑA FUERTE
+        # ============================================
+        if len(nueva_password) < 8:
+            flash('La contraseña debe tener al menos 8 caracteres', 'error')
+            return redirect(url_for('cambiar_password'))
+        
+        if not re.search(r'[A-Z]', nueva_password):
+            flash('La contraseña debe tener al menos una letra mayúscula (A-Z)', 'error')
+            return redirect(url_for('cambiar_password'))
+        
+        if not re.search(r'[a-z]', nueva_password):
+            flash('La contraseña debe tener al menos una letra minúscula (a-z)', 'error')
+            return redirect(url_for('cambiar_password'))
+        
+        if not re.search(r'[0-9]', nueva_password):
+            flash('La contraseña debe tener al menos un número (0-9)', 'error')
+            return redirect(url_for('cambiar_password'))
+        
+        if not re.search(r'[!@#$%^&*()_\-+=<>?{}[\]~]', nueva_password):
+            flash('La contraseña debe tener al menos un carácter especial (!@#$%^&*)', 'error')
+            return redirect(url_for('cambiar_password'))
+        
+        # ============================================
+        # FIN VALIDACIÓN
+        # ============================================
+        
+        hashed = generate_password_hash(nueva_password)
+        conexion = config.conectar_db()
+        
+        try:
+            with conexion.cursor() as cursor:
+                if session['user_tipo'] == 'alumno':
+                    cursor.execute("""
+                        UPDATE alumnos 
+                        SET password = %s, primer_login = FALSE 
+                        WHERE id_alumno = %s
+                    """, (hashed, session['user_id']))
+                else:
+                    cursor.execute("""
+                        UPDATE administrador 
+                        SET password = %s, primer_login = FALSE 
+                        WHERE id_control = %s
+                    """, (hashed, session['user_id']))
+                
+                conexion.commit()
+                flash('Contraseña actualizada correctamente', 'success')
+                
+        except Exception as e:
+            print(f"Error al cambiar password: {e}")
+            flash('Error al cambiar la contraseña', 'error')
+            return redirect(url_for('cambiar_password'))
+        finally:
+            conexion.close()
+        
+        # Redirigir según el tipo de usuario
+        if session['user_tipo'] == 'alumno':
+            return redirect(url_for('alumno_dashboard'))
+        else:
+            return redirect(url_for('admin_dashboard'))
+    
+    return render_template('cambiar_password.html')
+
+@app.route('/alumno/dashboard')
+def alumno_dashboard():
+    """Dashboard del alumno (por implementar)"""
+    if not session.get('user_tipo') == 'alumno':
+        return redirect(url_for('login'))
+    
+    return render_template('alumno_dashboard.html', nombre=session.get('user_nombre'))
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

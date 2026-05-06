@@ -424,3 +424,79 @@ body {
     background: rgba(0, 0, 0, 0.7);
     color: var(--dorado);
 }
+/* ============================================
+   MEJORAS PARA ENLACE DE RECUPERACIÓN
+   ============================================ */
+
+.login-links {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 0.5rem;
+}
+
+.login-links a {
+    color: var(--verde-oscuro);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-block;
+}
+
+.login-links a:hover {
+    color: var(--dorado);
+    text-decoration: underline;
+    transform: translateY(-1px);
+}
+
+/* Modo oscuro para el enlace */
+.dark-mode .login-links a {
+    color: var(--dorado);
+}
+
+.dark-mode .login-links a:hover {
+    color: #e0b84d;
+    text-decoration: underline;
+}
+/* Mejorar espaciado del formulario */
+.glass-card {
+    position: relative;
+    width: 90%;
+    max-width: 450px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Separar el enlace del botón */
+.btn-login {
+    width: 100%;
+    padding: 0.8rem;
+    background: #1a3a2a;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Playfair Display', serif;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.login-links {
+    text-align: center;
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Modo oscuro para la línea separadora */
+.dark-mode .login-links {
+    border-top-color: rgba(255, 255, 255, 0.1);
+}

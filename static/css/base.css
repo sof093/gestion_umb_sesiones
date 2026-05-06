@@ -258,9 +258,14 @@ footer strong { color: #ffffff; }
     width: 25px;
     height: 3px;
     margin: 5px 0;
-    background: var(--blanco);
+    background: #ffffff !important;  /* FIX: Siempre blanco */
     transition: all 0.3s ease;
     border-radius: 3px;
+}
+
+/* Al hacer hover, cambia a dorado */
+.menu-toggle:hover span {
+    background: var(--dorado) !important;
 }
 
 /* Animación del botón cuando está abierto */

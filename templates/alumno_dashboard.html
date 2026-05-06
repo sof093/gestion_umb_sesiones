@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel del Alumno</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f4f6f3; }
+        .container { max-width: 800px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; }
+        h1 { color: #1a3a2a; }
+        .btn { background: #2d5a3d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+        .btn:hover { background: #1a3a2a; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bienvenido, {{ nombre }}</h1>
+        <p>Esta es tu área personal. Pronto podrás ver las sesiones disponibles.</p>
+        <a href="{{ url_for('logout') }}" class="btn">Cerrar Sesión</a>
+    </div>
+</body>
+</html>

@@ -69,3 +69,47 @@
     // Exponer función global por si se necesita
     window.toggleModoNocturno = toggleModoNocturno;
 })();
+
+// === CIERRE DE SESIÓN CON SWEETALERT ===
+// === CIERRE DE SESIÓN CON SWEETALERT ===
+document.addEventListener('DOMContentLoaded', function() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            
+            Swal.fire({
+                title: '¿Cerrar sesión?',
+                text: '¿Estás seguro/a de que deseas cerrar la sesión?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#2d6e3e',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, cerrar sesión',
+                cancelButtonText: 'Cancelar',
+                background: isDarkMode ? '#1e1e1e' : '#ffffff',
+                color: isDarkMode ? '#f0f0f0' : '#1a2a1e'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Mostrar mensaje de éxito
+                    Swal.fire({
+                        title: '¡Sesión cerrada!',
+                        text: 'Redirigiendo al inicio de sesión...',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    }).then(() => {
+                        // Redirigir al logout de Flask
+                        window.location.href = '/logout';
+                    });
+                }
+            });
+        });
+    }
+});

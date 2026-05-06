@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style_admin_dashboard.css">
     <link rel="stylesheet" href="/static/css/base.css">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <!-- BARRA DE NAVEGACIÓN -->
@@ -42,9 +44,9 @@
         </button>
         <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
         <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
-        <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">
-            <i class="fas fa-sign-out-alt"></i>
-        </a>
+        <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">
+        <i class="fas fa-sign-out-alt"></i>
+    </button>  
     </div>
 </nav>
 

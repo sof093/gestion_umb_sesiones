@@ -11,9 +11,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-    <button id="themeToggleLogin" class="theme-toggle-btn">
-        <i class="fas fa-moon"></i>
-    </button>
 
     <div class="split-container">
         <div class="left-side">
@@ -61,7 +58,7 @@
                         <input type="password" name="password" class="form-control" placeholder="••••••••" required>
                     </div>
 
-                    <button type="submit" class="btn-login">Iniciar Sesión</button>
+                    <button type="submit" class="btn-login">Iniciar sesión</button>
                 </form>
 
                 <div class="login-links">
@@ -70,7 +67,18 @@
             </div>
         </div>
     </div>
-
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Limpiar campos de login al cargar la página
+    const emailInput = document.querySelector('input[name="email"]');
+    const passwordInput = document.querySelector('input[name="password"]');
+    
+    if (emailInput && passwordInput) {
+        emailInput.value = '';
+        passwordInput.value = '';
+    }
+});
+</script>
     <script src="/static/js/global.js"></script>
 </body>
 </html>
