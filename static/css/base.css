@@ -568,31 +568,7 @@ footer strong { color: #ffffff; }
 /* ============================================
    BADGES en modo oscuro
    ============================================ */
-.dark-mode .badge-conferencia-magistral,
-.dark-mode .badge-conferencia {
-    background: #1a3a5c;
-    color: #7bc5ff;
-}
 
-.dark-mode .badge-taller {
-    background: #1a5c3a;
-    color: #7bc5a0;
-}
-
-.dark-mode .badge-exhibicion {
-    background: #5c3a1a;
-    color: #ffb87c;
-}
-
-.dark-mode .badge-inauguracion {
-    background: #5c2a1a;
-    color: #ff8c7c;
-}
-
-.dark-mode .badge-cierre {
-    background: #3a1a5c;
-    color: #c87cff;
-}
 
 /* ============================================
    PAGINACIÓN en modo oscuro

@@ -20,23 +20,23 @@
             {% set nombre_completo = sesion.nombre_ponente + ' ' + sesion.apellido_paterno + (' ' + sesion.apellido_materno if sesion.apellido_materno else '') %}
             
             <div class="modal-detalle-seccion">
-                <h3>📅 Información General</h3>
+                <h3> Información General</h3>
                 <div class="modal-detalle-grid">
-                    <span class="modal-detalle-label">📆 Fecha:</span>
+                    <span class="modal-detalle-label"> Fecha:</span>
                     <span class="modal-detalle-valor">{{ sesion.fecha_str }}</span>
-                    <span class="modal-detalle-label">⏰ Horario:</span>
+                    <span class="modal-detalle-label"> Horario:</span>
                     <span class="modal-detalle-valor">{{ sesion.hora_inicio_str }} - {{ sesion.hora_fin_str }}</span>
-                    <span class="modal-detalle-label">📍 Sede:</span>
+                    <span class="modal-detalle-label"> Sede:</span>
                     <span class="modal-detalle-valor">{{ sesion.sede or 'No especificada' }}</span>
-                    <span class="modal-detalle-label">👥 Cupo:</span>
+                    <span class="modal-detalle-label"> Cupo:</span>
                     <span class="modal-detalle-valor">{{ sesion.cupo_audiencia or 'No especificado' }} personas</span>
-                    <span class="modal-detalle-label">🏛️ Escenario:</span>
+                    <span class="modal-detalle-label"> Escenario:</span>
                     <span class="modal-detalle-valor">{{ sesion.escenario_nombre or 'No especificado' }}</span>
                 </div>
             </div>
             
             <div class="modal-detalle-seccion">
-                <h3>👤 Ponente</h3>
+                <h3> Ponente</h3>
                 <div class="modal-detalle-grid">
                     <span class="modal-detalle-label">Nombre:</span>
                     <span class="modal-detalle-valor"><strong>{{ nombre_completo }}</strong></span>
@@ -44,7 +44,7 @@
                     <span class="modal-detalle-valor">{{ sesion.perfil_profesional or 'No especificado' }}</span>
                 </div>
                 {% if sesion.biografia %}
-                <div class="modal-detalle-texto"><strong>📖 Biografía:</strong><br>{{ sesion.biografia }}</div>
+                <div class="modal-detalle-texto"><strong> Biografía:</strong><br>{{ sesion.biografia }}</div>
                 {% endif %}
                 {% if sesion.fotografia %}
                 <div class="modal-detalle-foto"><img src="/static/{{ sesion.fotografia }}" alt="Foto del ponente"></div>
@@ -52,7 +52,7 @@
             </div>
             
             <div class="modal-detalle-seccion">
-                <h3>🏛️ Información Institucional</h3>
+                <h3> Información Institucional</h3>
                 <div class="modal-detalle-grid">
                     <span class="modal-detalle-label">Tipo de sesión:</span>
                     <span class="modal-detalle-valor">{{ sesion.tipo or 'No especificado' }}</span>
@@ -68,13 +68,13 @@
             
             {% if sesion.descripcion_materiales %}
             <div class="modal-detalle-seccion">
-                <h3>📦 Materiales Requeridos</h3>
+                <h3> Materiales Requeridos</h3>
                 <div class="modal-detalle-texto">{{ sesion.descripcion_materiales }}</div>
             </div>
             {% endif %}
             
             <div class="modal-detalle-seccion">
-                <h3>📍 Ubicación</h3>
+                <h3> Ubicación</h3>
                 <div class="modal-detalle-texto">El Aula Magna se encuentra ubicada en el edificio principal de la universidad, en el primer piso del bloque académico, frente a la sala de cómputo y al lado izquierdo de la plazoleta.</div>
             </div>
             {% else %}
