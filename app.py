@@ -1512,6 +1512,439 @@ def alumno_dashboard():
         return redirect(url_for('login'))
     
     return render_template('alumno_dashboard.html', nombre=session.get('user_nombre'))
+# ==================== EVENTOS CRUD ====================
 
+@app.route("/api/eventos", methods=["GET"])
+def api_listar_eventos():
+    """Lista todos los eventos ordenados por año desc."""
+    if not session.get("admin_logged"):
+        return jsonify({"error": "No autorizado"}), 401
+
+    con = config.conectar_db()
+    if not con:
+        return jsonify([]), 500
+    try:
+        with con.cursor() as cur:
+            cur.execute("""
+                SELECT e.*,
+                       COUNT(s.id_sesion) AS total_sesiones
+                FROM evento e
+                LEFT JOIN sesion s ON s.id_evento = e.id_evento
+                GROUP BY e.id_evento
+                ORDER BY e.anio DESC, e.fecha_inicio DESC
+            """)
+            rows = cur.fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            for campo in ("fecha_inicio", "fecha_fin", "creado_en", "actualizado_en"):
+                if d.get(campo) and hasattr(d[campo], "strftime"):
+                    d[campo] = d[campo].strftime(
+                        "%Y-%m-%d" if "fecha" in campo else "%Y-%m-%d %H:%M:%S"
+                    )
+            result.append(d)
+        return jsonify(result)
+    except Exception as e:
+        print(f"[api_listar_eventos] {e}")
+        return jsonify([]), 500
+    finally:
+        con.close()
+
+
+def _dias_evento(fecha_inicio, fecha_fin):
+    """Genera lista de fechas entre fecha_inicio y fecha_fin excluyendo fines de semana."""
+    if isinstance(fecha_inicio, str):
+        fecha_inicio = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
+    if isinstance(fecha_fin, str):
+        fecha_fin = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
+
+    dias = []
+    current = fecha_inicio
+    while current <= fecha_fin:
+        if current.weekday() < 5:  # 0=Lun, 4=Vie
+            dias.append(current)
+        current += timedelta(days=1)
+    return dias
+
+
+@app.route("/api/eventos", methods=["POST"])
+def api_crear_evento():
+    """Crea un nuevo evento."""
+    if not session.get("admin_logged"):
+        return jsonify({"success": False, "message": "No autorizado"}), 401
+
+    data = request.get_json()
+    nombre = (data.get("nombre") or "").strip()
+    fecha_inicio = data.get("fecha_inicio")
+    fecha_fin = data.get("fecha_fin")
+    descripcion = (data.get("descripcion") or "").strip() or None
+    activar = bool(data.get("activar", False))
+
+    if not nombre:
+        return jsonify({"success": False, "message": "El nombre del evento es requerido"})
+    if not fecha_inicio or not fecha_fin:
+        return jsonify({"success": False, "message": "Las fechas son requeridas"})
+
+    try:
+        fi = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
+        ff = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
+    except ValueError:
+        return jsonify({"success": False, "message": "Formato de fecha inválido"})
+
+    if ff < fi:
+        return jsonify({"success": False, "message": "La fecha fin no puede ser anterior a la fecha inicio"})
+
+    dias_habiles = _dias_evento(fi, ff)
+    if not dias_habiles:
+        return jsonify({"success": False, "message": "El rango seleccionado no contiene días hábiles (Lun-Vie)"})
+
+    anio = fi.year
+
+    con = config.conectar_db()
+    if not con:
+        return jsonify({"success": False, "message": "Error de conexión"}), 500
+
+    try:
+        with con.cursor() as cur:
+            if activar:
+                cur.execute("UPDATE evento SET activo = 0")
+
+            cur.execute("""
+                INSERT INTO evento (nombre, anio, fecha_inicio, fecha_fin, descripcion, activo)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (nombre, anio, fi, ff, descripcion, 1 if activar else 0))
+            nuevo_id = cur.lastrowid
+        con.commit()
+        return jsonify({
+            "success": True,
+            "message": "Evento creado exitosamente",
+            "id_evento": nuevo_id,
+            "dias_habiles": len(dias_habiles)
+        })
+    except Exception as e:
+        con.rollback()
+        print(f"[api_crear_evento] {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        con.close()
+
+
+@app.route("/api/eventos/<int:id_evento>", methods=["PUT"])
+def api_editar_evento(id_evento):
+    """Edita nombre, fechas y descripción de un evento."""
+    if not session.get("admin_logged"):
+        return jsonify({"success": False, "message": "No autorizado"}), 401
+
+    data = request.get_json()
+    nombre = (data.get("nombre") or "").strip()
+    fecha_inicio = data.get("fecha_inicio")
+    fecha_fin = data.get("fecha_fin")
+    descripcion = (data.get("descripcion") or "").strip() or None
+
+    if not nombre or not fecha_inicio or not fecha_fin:
+        return jsonify({"success": False, "message": "Faltan campos requeridos"})
+
+    try:
+        fi = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
+        ff = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
+    except ValueError:
+        return jsonify({"success": False, "message": "Formato de fecha inválido"})
+
+    if ff < fi:
+        return jsonify({"success": False, "message": "La fecha fin no puede ser anterior a la fecha inicio"})
+
+    con = config.conectar_db()
+    if not con:
+        return jsonify({"success": False, "message": "Error de conexión"}), 500
+    try:
+        with con.cursor() as cur:
+            cur.execute("""
+                UPDATE evento
+                SET nombre=%s, anio=%s, fecha_inicio=%s, fecha_fin=%s, descripcion=%s
+                WHERE id_evento=%s
+            """, (nombre, fi.year, fi, ff, descripcion, id_evento))
+        con.commit()
+        return jsonify({"success": True, "message": "Evento actualizado"})
+    except Exception as e:
+        con.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        con.close()
+
+
+@app.route("/api/eventos/<int:id_evento>/activar", methods=["POST"])
+def api_activar_evento(id_evento):
+    """Marca un evento como activo (desactiva los demás)."""
+    if not session.get("admin_logged"):
+        return jsonify({"success": False, "message": "No autorizado"}), 401
+
+    con = config.conectar_db()
+    if not con:
+        return jsonify({"success": False, "message": "Error de conexión"}), 500
+    try:
+        with con.cursor() as cur:
+            cur.execute("UPDATE evento SET activo = 0")
+            cur.execute("UPDATE evento SET activo = 1 WHERE id_evento = %s", (id_evento,))
+        con.commit()
+        return jsonify({"success": True, "message": "Evento activado"})
+    except Exception as e:
+        con.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        con.close()
+
+
+@app.route("/api/eventos/<int:id_evento>", methods=["DELETE"])
+def api_eliminar_evento(id_evento):
+    """Elimina un evento (sus sesiones quedan con id_evento=NULL)."""
+    if not session.get("admin_logged"):
+        return jsonify({"success": False, "message": "No autorizado"}), 401
+
+    con = config.conectar_db()
+    if not con:
+        return jsonify({"success": False, "message": "Error de conexión"}), 500
+    try:
+        with con.cursor() as cur:
+            cur.execute("DELETE FROM evento WHERE id_evento = %s", (id_evento,))
+        con.commit()
+        return jsonify({"success": True, "message": "Evento eliminado"})
+    except Exception as e:
+        con.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        con.close()
+
+
+# ==================== SESIONES POR EVENTO ====================
+
+@app.route("/api/eventos/<int:id_evento>/sesiones")
+def api_sesiones_por_evento(id_evento):
+    """Devuelve todas las sesiones de un evento."""
+    if not session.get("admin_logged"):
+        return jsonify([])
+
+    con = config.conectar_db()
+    if not con:
+        return jsonify([])
+
+    try:
+        with con.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    s.id_sesion, s.id_evento, s.sede,
+                    s.nombre_de_sesion, s.fecha,
+                    s.nombre_ponente, s.apellido_paterno, s.apellido_materno,
+                    s.perfil_profesional, s.hora_inicio, s.hora_fin,
+                    s.cupo_audiencia, s.fotografia,
+                    ts.nombre_sesion AS tipo,
+                    e.nombre_escenario AS escenario_nombre,
+                    e.id_escenario,
+                    c.nombre_carrera AS carrera_nombre
+                FROM sesion s
+                JOIN tipo_sesion ts ON ts.id_tipo_sesion = s.id_tipo_sesion
+                JOIN escenarios e ON e.id_escenario = s.id_escenario
+                LEFT JOIN carreras c ON c.id_carrera = s.id_carrera
+                WHERE s.id_evento = %s
+                ORDER BY s.fecha, s.hora_inicio
+            """, (id_evento,))
+            sesiones = cur.fetchall()
+
+        result = []
+        for s in sesiones:
+            item = dict(s)
+            # Convertir fecha
+            if item.get("fecha") and hasattr(item["fecha"], "strftime"):
+                item["fecha"] = item["fecha"].strftime("%Y-%m-%d")
+            # Convertir horas
+            for campo in ("hora_inicio", "hora_fin"):
+                val = item.get(campo)
+                if val is not None:
+                    if hasattr(val, "seconds"):
+                        h = val.seconds // 3600
+                        m = (val.seconds % 3600) // 60
+                        item[campo] = f"{h:02d}:{m:02d}"
+                        item[f"{campo}_str"] = f"{h:02d}:{m:02d}"
+                    elif hasattr(val, "strftime"):
+                        item[campo] = val.strftime("%H:%M")
+                        item[f"{campo}_str"] = val.strftime("%H:%M")
+            if item.get("cupo_audiencia") is None:
+                item["cupo_audiencia"] = 0
+            result.append(item)
+
+        return jsonify(result)
+    except Exception as e:
+        print(f"[api_sesiones_por_evento] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify([])
+    finally:
+        con.close()
+
+
+@app.route("/api/eventos/<int:id_evento>/conflictos")
+def api_conflictos_evento(id_evento):
+    """Devuelve la lista de pares de sesiones en conflicto dentro de un evento."""
+    if not session.get("admin_logged"):
+        return jsonify([])
+
+    con = config.conectar_db()
+    if not con:
+        return jsonify([])
+
+    try:
+        with con.cursor() as cur:
+            # Primero asegurar que la vista existe
+            cur.execute("""
+                CREATE OR REPLACE VIEW v_conflictos_sesion AS
+                SELECT
+                    a.id_sesion AS id_sesion_a,
+                    b.id_sesion AS id_sesion_b,
+                    a.id_evento,
+                    a.fecha,
+                    a.id_escenario,
+                    e.nombre_escenario,
+                    a.nombre_de_sesion AS sesion_a,
+                    b.nombre_de_sesion AS sesion_b,
+                    a.hora_inicio AS inicio_a,
+                    a.hora_fin AS fin_a,
+                    b.hora_inicio AS inicio_b,
+                    b.hora_fin AS fin_b
+                FROM sesion a
+                JOIN sesion b ON a.id_evento = b.id_evento
+                    AND a.fecha = b.fecha
+                    AND a.id_escenario = b.id_escenario
+                    AND a.id_sesion < b.id_sesion
+                JOIN escenarios e ON a.id_escenario = e.id_escenario
+                WHERE a.id_evento IS NOT NULL
+                  AND NOT (a.hora_fin <= b.hora_inicio OR a.hora_inicio >= b.hora_fin)
+            """)
+
+            cur.execute("""
+                SELECT
+                    vc.*,
+                    TIME_FORMAT(vc.inicio_a, '%%H:%%i') AS inicio_a_str,
+                    TIME_FORMAT(vc.fin_a, '%%H:%%i') AS fin_a_str,
+                    TIME_FORMAT(vc.inicio_b, '%%H:%%i') AS inicio_b_str,
+                    TIME_FORMAT(vc.fin_b, '%%H:%%i') AS fin_b_str
+                FROM v_conflictos_sesion vc
+                WHERE vc.id_evento = %s
+            """, (id_evento,))
+            rows = cur.fetchall()
+
+        result = []
+        for r in rows:
+            d = dict(r)
+            if d.get("fecha") and hasattr(d["fecha"], "strftime"):
+                d["fecha"] = d["fecha"].strftime("%Y-%m-%d")
+            result.append(d)
+        return jsonify(result)
+    except Exception as e:
+        print(f"[api_conflictos_evento] {e}")
+        return jsonify([])
+    finally:
+        con.close()
+
+
+@app.route("/api/eventos/<int:id_evento>/info")
+def api_info_evento(id_evento):
+    """Devuelve metadata del evento incluyendo días hábiles."""
+    if not session.get("admin_logged"):
+        return jsonify({"error": "No autorizado"}), 401
+
+    con = config.conectar_db()
+    if not con:
+        return jsonify({"error": "Sin conexión"}), 500
+    try:
+        with con.cursor() as cur:
+            cur.execute("SELECT * FROM evento WHERE id_evento = %s", (id_evento,))
+            ev = cur.fetchone()
+        if not ev:
+            return jsonify({"error": "No encontrado"}), 404
+
+        d = dict(ev)
+        fi = d["fecha_inicio"]
+        ff = d["fecha_fin"]
+        dias = _dias_evento(fi, ff)
+
+        d["fecha_inicio"] = fi.strftime("%Y-%m-%d") if hasattr(fi, "strftime") else str(fi)
+        d["fecha_fin"] = ff.strftime("%Y-%m-%d") if hasattr(ff, "strftime") else str(ff)
+        d["dias_habiles"] = [dia.strftime("%Y-%m-%d") for dia in dias]
+        d["total_dias"] = len(dias)
+
+        return jsonify(d)
+    except Exception as e:
+        print(f"[api_info_evento] {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        con.close()
+
+
+# ==================== EXPORTACIÓN HTML ====================
+
+@app.route("/admin/eventos/<int:id_evento>/exportar-html")
+def exportar_itinerario_html(id_evento):
+    """Genera una página HTML estática del programa/itinerario del evento."""
+    if not session.get("admin_logged"):
+        return redirect(url_for("index"))
+
+    con = config.conectar_db()
+    if not con:
+        flash("Error de conexión", "error")
+        return redirect(url_for("admin_sesiones"))
+
+    try:
+        with con.cursor() as cur:
+            cur.execute("SELECT * FROM evento WHERE id_evento = %s", (id_evento,))
+            ev = cur.fetchone()
+            if not ev:
+                flash("Evento no encontrado", "error")
+                return redirect(url_for("admin_sesiones"))
+
+            cur.execute("""
+                SELECT
+                    s.*, ts.nombre_sesion AS tipo,
+                    e.nombre_escenario AS escenario_nombre
+                FROM sesion s
+                JOIN tipo_sesion ts ON ts.id_tipo_sesion = s.id_tipo_sesion
+                JOIN escenarios e ON e.id_escenario = s.id_escenario
+                WHERE s.id_evento = %s
+                ORDER BY s.fecha, s.hora_inicio
+            """, (id_evento,))
+            sesiones = cur.fetchall()
+
+        # Agrupar por fecha
+        from collections import defaultdict
+        por_dia = defaultdict(list)
+        for s in sesiones:
+            fecha_str = s["fecha"].strftime("%Y-%m-%d") if hasattr(s["fecha"], "strftime") else str(s["fecha"])
+            # Convertir horas
+            hora_inicio = s["hora_inicio"]
+            hora_fin = s["hora_fin"]
+            if hasattr(hora_inicio, "seconds"):
+                h = hora_inicio.seconds // 3600
+                m = (hora_inicio.seconds % 3600) // 60
+                hora_inicio = f"{h:02d}:{m:02d}"
+                hora_fin = f"{hora_fin.seconds // 3600:02d}:{(hora_fin.seconds % 3600) // 60:02d}"
+            por_dia[fecha_str].append({
+                "nombre_de_sesion": s["nombre_de_sesion"],
+                "hora_inicio": hora_inicio,
+                "hora_fin": hora_fin,
+                "tipo": s["tipo"],
+                "escenario_nombre": s["escenario_nombre"],
+                "nombre_ponente": s["nombre_ponente"],
+                "apellido_paterno": s["apellido_paterno"],
+            })
+
+        return render_template("itinerario_publico.html",
+                               evento=ev,
+                               por_dia=dict(por_dia),
+                               nombre_evento=ev["nombre"])
+    except Exception as e:
+        print(f"[exportar_itinerario_html] {e}")
+        flash(f"Error al exportar: {e}", "error")
+        return redirect(url_for("admin_sesiones"))
+    finally:
+        con.close()
+        
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

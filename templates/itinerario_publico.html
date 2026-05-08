@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ nombre_evento }} - Itinerario UES</title>
+    <style>
+        body {
+            font-family: 'DM Sans', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: #1a3a2a;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+        }
+        .header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .dia-card {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .dia-title {
+            background: #f0f0f0;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #1a3a2a;
+            border-bottom: 2px solid #c8a84b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background: #fafafa;
+            font-weight: 600;
+            color: #555;
+        }
+        .footer {
+            background: #f0f0f0;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #777;
+            border-top: 1px solid #e0e0e0;
+        }
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 {{ nombre_evento }}</h1>
+            <p>Programa de actividades | UES San José del Rincón</p>
+        </div>
+        <div class="content">
+            {% for fecha, sesiones in por_dia.items() %}
+            <div class="dia-card">
+                <div class="dia-title">
+                    📍 {{ fecha }}
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Horario</th>
+                            <th>Sesión</th>
+                            <th>Tipo</th>
+                            <th>Ponente</th>
+                            <th>Escenario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sesion in sesiones %}
+                        <tr>
+                            <td>{{ sesion.hora_inicio }} - {{ sesion.hora_fin }}</td>
+                            <td><strong>{{ sesion.nombre_de_sesion }}</strong></td>
+                            <td>{{ sesion.tipo }}</td>
+                            <td>{{ sesion.nombre_ponente }} {{ sesion.apellido_paterno }}</td>
+                            <td>{{ sesion.escenario_nombre }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="footer">
+            <p>© 2026 UES San José del Rincón - Todos los derechos reservados</p>
+        </div>
+    </div>
+</body>
+</html>

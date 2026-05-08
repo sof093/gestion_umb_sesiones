@@ -1,4 +1,3 @@
-<!--admin_sesiones.html-->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,33 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestión de Sesiones — UES San José del Rincón</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/admin_sesiones.css">
+
 <link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/admin_sesiones.css">
+<link rel="stylesheet" href="/static/css/calendario.css">
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
 
 <nav class="navbar">
-    <!-- Logo / Título (izquierda) -->
     <div class="navbar-logo">
         <span class="navbar-brand">UES San José del Rincón</span>
     </div>
     
-    <!-- Botón hamburguesa (solo visible en móvil) -->
     <button class="menu-toggle" id="menuToggle">
         <span></span>
         <span></span>
         <span></span>
     </button>
     
-    <!-- Enlaces de navegación (menú) -->
     <div class="nav-links" id="navLinks">
         <a href="/admin/dashboard" class="nav-link">Inicio</a>
         <a href="/admin/usuarios" class="nav-link" data-page="usuarios">Usuarios</a>
+        <a href="/admin/sesiones" class="nav-link active">Sesiones</a>
     </div>
     
-    <!-- Sección derecha -->
     <div class="navbar-right">
         <button class="theme-toggle" id="themeToggle">
             <i class="fas fa-moon"></i>
@@ -40,83 +38,150 @@
         <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
         <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
         <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">
-        <i class="fas fa-sign-out-alt"></i>
+            <i class="fas fa-sign-out-alt"></i>
         </button>
     </div>
 </nav>
 
 <div class="hero">
-  <h1 class="hero-title">Gestión de sesiones</h1>
-  <a href="{{ url_for('nueva_sesion') }}" class="btn-nueva">+ Nueva sesión</a>
+    <h1 class="hero-title">Gestión de sesiones</h1>
+    <a href="{{ url_for('nueva_sesion') }}" class="btn-nueva">+ Nueva sesión</a>
+</div>
+
+<!-- ==================== BARRA DE EVENTO (AGREGAR) ==================== -->
+<div class="evento-bar">
+    <div class="evento-bar-left">
+        <div class="evento-icon"><i class="fas fa-calendar-alt"></i></div>
+        <div>
+            <div class="evento-label">Jornada activa</div>
+            <select id="eventoSelect" class="evento-select"></select>
+        </div>
+    </div>
+    <div class="evento-bar-right">
+        <div id="eventoMeta" class="evento-meta"></div>
+        <button id="btnNuevoEvento" class="btn-evento">
+            <i class="fas fa-plus-circle"></i> Nueva jornada
+        </button>
+        <div class="view-toggle">
+            <button class="view-btn active" data-view="calendario">
+                <i class="fas fa-calendar-week"></i> Calendario
+            </button>
+            <button class="view-btn" data-view="tabla">
+                <i class="fas fa-table"></i> Tabla
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== PANEL DE CONFLICTOS (AGREGAR) ==================== -->
+<div id="conflictAlert" class="conflict-alert" style="display: none;">
+    <div class="conflict-alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+    <div class="conflict-alert-body">
+        <strong id="conflictTitle">Conflictos detectados</strong>
+        <div id="conflictList"></div>
+    </div>
+    <button class="conflict-dismiss" id="conflictDismiss">&times;</button>
 </div>
 
 <main class="main">
-  <!-- CONTROLES DE BÚSQUEDA Y FILTROS -->
-  <div class="controls">
-    <div class="mostrar-group">
-      <span>Mostrar</span>
-      <select class="select-mostrar" id="selectMostrar">
-        <option value="1" selected>1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-      </select>
-      <span>sesiones</span>
+    <!-- ==================== VISTA CALENDARIO (AGREGAR) ==================== -->
+    <div id="vistaCalendario" style="display: block;">
+        <div class="cal-header">
+            <div class="cal-nav">
+                <button class="cal-nav-btn" id="calPrevWeek">&lt;</button>
+                <button class="cal-nav-btn" id="calNextWeek">&gt;</button>
+            </div>
+            <div class="cal-title-wrap">
+                <span class="cal-title" id="calTitle">—</span>
+                <span class="cal-subtitle" id="calSubtitle"></span>
+            </div>
+            <div class="cal-actions">
+                <button class="cal-export-btn" id="btnExportPdf"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="cal-export-btn" id="btnExportExcel"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="cal-export-btn" id="btnExportHtml"><i class="fas fa-code"></i> HTML</button>
+            </div>
+        </div>
+        <div class="cal-wrapper">
+            <div id="calLoading" class="cal-loading">
+                <i class="fas fa-spinner fa-spin"></i> Cargando calendario...
+            </div>
+            <div id="calGrid" class="cal-grid" style="display: none;"></div>
+        </div>
+        <div class="cal-legend">
+            <div class="legend-item"><div class="legend-dot tipo-magistral"></div> Magistral</div>
+            <div class="legend-item"><div class="legend-dot tipo-conferencia"></div> Conferencia</div>
+            <div class="legend-item"><div class="legend-dot tipo-taller"></div> Taller</div>
+            <div class="legend-item"><div class="legend-dot tipo-conflicto"></div> Conflicto</div>
+        </div>
     </div>
 
-    <div class="search-wrap">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-      </svg>
-      <input type="text" id="buscarInput" class="search-input" placeholder="Buscar por conferencista">
+    <!-- ==================== VISTA TABLA (EXISTENTE) ==================== -->
+    <div id="vistaTabla" style="display: none;">
+        <div class="controls">
+            <div class="mostrar-group">
+                <span>Mostrar</span>
+                <select class="select-mostrar" id="selectMostrar">
+                    <option value="2" selected>2</option>
+                    <option value="4">4</option>
+                    <option value="6">6</option>
+                    <option value="10">10</option>
+                </select>
+                <span>sesiones</span>
+            </div>
+
+            <div class="search-wrap">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                </svg>
+                <input type="text" id="buscarInput" class="search-input" placeholder="Buscar por conferencista">
+            </div>
+
+            <select class="select-filtro" id="selectFiltroTipo">
+                <option value="">Todos los tipos de sesión</option>
+                <optgroup label="Tipo de sesión">
+                    <option value="Conferencia magistral">Conferencia magistral</option>
+                    <option value="Conferencia">Conferencia</option>
+                    <option value="Taller">Taller</option>
+                    <option value="Exhibición">Exhibición</option>
+                    <option value="Inauguración">Inauguración</option>
+                    <option value="Cierre del evento">Cierre del evento</option>
+                </optgroup>
+            </select>
+
+            <select class="select-filtro" id="selectFiltroEscenario">
+                <option value="">Todos los escenarios</option>
+                <optgroup label="Escenario">
+                    <option value="Aula magna">Aula magna</option>
+                    <option value="Laboratorio de cómputo">Laboratorio de cómputo</option>
+                    <option value="Aula #">Aula #</option>
+                    <option value="Plazoleta institucional">Plazoleta institucional</option>
+                    <option value="Áreas verdes">Áreas verdes</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <div class="tabla-wrap">
+            <table id="tablaSesiones">
+                <thead>
+                    <tr>
+                        <th>Sesión</th>
+                        <th>Conferencista</th>
+                        <th>Tipo</th>
+                        <th>Escenario</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaCuerpo">
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Cargando sesiones...</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="paginacion-wrap" id="paginacionWrap"></div>
+        </div>
     </div>
-
-    <select class="select-filtro" id="selectFiltroTipo">
-    <option value="">Todos los tipos de sesión</option>
-    <optgroup label="Tipo de sesión">
-      <option value="Conferencia magistral">Conferencia magistral</option>
-      <option value="Conferencia">Conferencia</option>
-      <option value="Taller">Taller</option>
-      <option value="Exhibición">Exhibición</option>
-      <option value="Inauguración">Inauguración</option>
-      <option value="Cierre del evento">Cierre del evento</option>
-    </optgroup>
-  </select>
-
-  <select class="select-filtro" id="selectFiltroEscenario">
-    <option value="">Todos los escenarios</option>
-    <optgroup label="Escenario">
-      <option value="Aula magna">Aula magna</option>
-      <option value="Laboratorio de cómputo">Laboratorio de cómputo</option>
-      <option value="Aula #">Aula #</option>
-      <option value="Plazoleta institucional">Plazoleta institucional</option>
-      <option value="Áreas verdes">Áreas verdes</option>
-    </optgroup>
-  </select>
-  
-  </div>
-
-  <div class="tabla-wrap">
-    <table id="tablaSesiones">
-      <thead>
-        <tr>
-          <th>Sesión</th>
-          <th>Conferencista</th>
-          <th>Tipo</th>
-          <th>Escenario</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="tablaCuerpo">
-        <tr>
-          <td colspan="5" style="text-align: center;">Cargando sesiones...</td>
-        </tr>
-      </tbody>
-    </table>
-    <div class="paginacion-wrap" id="paginacionWrap"></div>
-  </div>
 </main>
+
 <!-- Modal iframe para cargar admin_ver_sesion.html -->
 <div id="modalIframe" class="modal-iframe-overlay" style="display: none;">
     <div class="modal-iframe-container">
@@ -124,16 +189,77 @@
     </div>
 </div>
 
+<!-- ==================== MODAL EVENTO (AGREGAR) ==================== -->
+<div id="modalEvento" class="modal-evento-overlay" style="display: none;">
+    <div class="modal-evento-container">
+        <div class="modal-evento-header">
+            <h3 id="modalEventoTitle">Nueva Jornada</h3>
+            <button class="modal-evento-close" id="modalEventoClose">&times;</button>
+        </div>
+        <div class="modal-evento-body">
+            <input type="hidden" id="eventoEditId">
+            <div class="form-group">
+                <label>Nombre de la jornada <span class="required">*</span></label>
+                <input type="text" id="eventoNombre" class="form-control" placeholder="Ej: Jornada Académica 2026">
+                <div id="err-nombre" class="error-msg" style="display:none"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha inicio <span class="required">*</span></label>
+                    <input type="date" id="eventoFechaInicio" class="form-control">
+                    <div id="err-fi" class="error-msg" style="display:none"></div>
+                </div>
+                <div class="form-group">
+                    <label>Fecha fin <span class="required">*</span></label>
+                    <input type="date" id="eventoFechaFin" class="form-control">
+                    <div id="err-ff" class="error-msg" style="display:none"></div>
+                </div>
+            </div>
+            <div id="diasPreview" class="dias-preview" style="display: none;">
+                <i class="fas fa-calendar-check"></i>
+                <span id="diasPreviewText"></span>
+            </div>
+            <div class="form-group">
+                <label>Descripción (opcional)</label>
+                <textarea id="eventoDescripcion" class="form-control" rows="2"></textarea>
+            </div>
+            <div id="activarGroup" class="checkbox-label">
+                <input type="checkbox" id="eventoActivar" checked> Activar esta jornada ahora
+            </div>
+        </div>
+        <div class="modal-evento-footer">
+            <button class="btn-cancel" id="btnEventoCancel">Cancelar</button>
+            <button class="btn-save" id="btnEventoSave">Guardar</button>
+        </div>
+    </div>
+</div>
+
 <footer>
-  <strong>© 2026 UES San José del Rincón</strong><br>
-  Gestión de la jornada académica y cultural<br>
-  Todos los derechos reservados.
+    <strong>© 2026 UES San José del Rincón</strong><br>
+    Gestión de la jornada académica y cultural<br>
+    Todos los derechos reservados.
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
 <script src="/static/js/admin_sesiones.js"></script>
 <script src="/static/js/global.js"></script>
 <script src="/static/js/menu.js"></script>
+<script src="/static/js/calendario.js"></script>
+
+<script>
+    // Función global para ver detalles de sesión desde el calendario
+    window.verDetalles = function(idSesion) {
+        const modal = document.getElementById("modalIframe");
+        const iframe = document.getElementById("modalIframeContent");
+        if (modal && iframe) {
+            iframe.src = `/admin/ver-sesion?id=${idSesion}`;
+            modal.style.display = "flex";
+        }
+    };
+</script>
 </body>
 </html>
