@@ -32,26 +32,40 @@
     <div class="form-header">
       <h2>Complete los datos de la sesión</h2>
     </div>
-    
     <form method="POST" enctype="multipart/form-data" class="form-body" id="sesionForm">
-      <div class="form-row">
-      <div class="form-group">
-        <label>Fecha</label>
-        <input type="date" name="fecha" id="fecha" required>
-        <small style="color: #7a9a82;"></small>
-        <div class="error-message" id="error-fecha">La fecha no puede ser anterior al día de hoy</div>
-        </div>
-        
-        <div class="form-group">
-          <label>Sede</label>
-          <select name="sede" id="sede" required>
-            <option value="">Seleccione una sede</option>
-            <option value="Unidad de estudio superiores">Universidad Mexiquense del Bicentenario</option>
-            <option value="San José del Rincón">Municipalidad de San José del Rincón</option>
-          </select>
-          <div class="error-message" id="error-sede"></div>
-        </div>
-      </div>
+    <div class="form-group">
+    <label for="id_evento">
+        <i class="fas fa-calendar-alt"></i> Evento académico *
+    </label>
+    <select id="id_evento" name="id_evento" required>
+        <option value="">-- Seleccionar evento --</option>
+        {% for evento in eventos %}
+            {% set fecha_corta = evento.fecha_inicio.strftime('%d/%m') + '-' + evento.fecha_fin.strftime('%d/%m') %}
+            {% set nombre_corto = evento.nombre[:35] + '...' if evento.nombre|length > 35 else evento.nombre %}
+            <option value="{{ evento.id_evento }}" 
+                    {% if sesion and sesion.id_evento == evento.id_evento %}selected{% endif %}
+                    {% if evento.activo == 1 %}data-activo="true"{% endif %}>
+                {{ nombre_corto }} [{{ fecha_corta }}]{% if evento.activo == 1 %} ★{% endif %}
+            </option>
+        {% endfor %}
+    </select>
+    <small class="form-text text-muted">
+        <i class="fas fa-info-circle"></i> 
+        Las sesiones solo serán visibles para estudiantes si pertenecen al evento activo Y está publicado
+    </small>
+</div>
+
+
+<!-- Sede justo aquí, debajo del evento académico -->
+<div class="form-group">
+    <label>Sede</label>
+    <select name="sede" id="sede" required>
+        <option value="">Seleccione una sede</option>
+        <option value="Unidad de estudio superiores">Universidad Mexiquense del Bicentenario</option>
+        <option value="San José del Rincón">Municipalidad de San José del Rincón</option>
+    </select>
+    <div class="error-message" id="error-sede"></div>
+</div>
       <div class="form-group">
         <label>Nombre de la sesión</label>
         <input type="text" name="nombre_de_sesion" id="nombre_de_sesion" placeholder="Ej. 'Innovación educativa', 'Tendencias digitales 2024'..." required>
@@ -118,6 +132,13 @@
         <textarea name="descripcion_materiales" id="descripcion_materiales" rows="2" placeholder="Ej. Proyector, computadora, materiales de oficina, equipo especial..."></textarea>
         <div class="error-message" id="error-descripcion_materiales">La descripción de materiales es requerida</div>
       </div>
+      
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" name="fecha" id="fecha" required>
+        <small style="color: #7a9a82;"></small>
+        <div class="error-message" id="error-fecha">La fecha no puede ser anterior al día de hoy</div>
+        </div>
 
       <div class="form-row">
         <div class="form-group">

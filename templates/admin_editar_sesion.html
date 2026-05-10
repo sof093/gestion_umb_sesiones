@@ -38,22 +38,39 @@
         </div>
         
         <form method="POST" enctype="multipart/form-data" class="form-body" id="sesionForm">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Fecha</label>
-                    <input type="date" name="fecha" id="fecha" required value="{{ sesion.fecha_str or sesion.fecha }}">
-                    <div class="error-message" id="error-fecha">La fecha no puede ser anterior al día de hoy</div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Sede</label>
-                    <select name="sede" id="sede" required>
-                        <option value="">Seleccione una sede</option>
-                        <option value="Unidad de estudio superiores" {% if sesion.sede == 'Unidad de estudio superiores' %}selected{% endif %}>Universidad Mexiquense del Bicentenario</option>
-                        <option value="San José del Rincón" {% if sesion.sede == 'San José del Rincón' %}selected{% endif %}>Municipalidad de San José del Rincón</option>
-                    </select>
-                    <div class="error-message" id="error-sede"></div>
-                </div>
+            
+            <!-- Evento académico -->
+            <div class="form-group">
+                <label for="id_evento">
+                    <i class="fas fa-calendar-alt"></i> Evento académico *
+                </label>
+                <select id="id_evento" name="id_evento" required>
+                    <option value="">-- Seleccionar evento --</option>
+                    {% for evento in eventos %}
+                        {% set fecha_corta = evento.fecha_inicio.strftime('%d/%m') + '-' + evento.fecha_fin.strftime('%d/%m') %}
+                        {% set nombre_corto = evento.nombre[:35] + '...' if evento.nombre|length > 35 else evento.nombre %}
+                        <option value="{{ evento.id_evento }}" 
+                                {% if sesion and sesion.id_evento == evento.id_evento %}selected{% endif %}
+                                {% if evento.activo == 1 %}data-activo="true"{% endif %}>
+                            {{ nombre_corto }} [{{ fecha_corta }}]{% if evento.activo == 1 %} ★{% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">
+                    <i class="fas fa-info-circle"></i> 
+                    Las sesiones solo serán visibles para estudiantes si pertenecen al evento activo Y está publicado
+                </small>
+            </div>
+
+            <!-- Sede -->
+            <div class="form-group">
+                <label>Sede</label>
+                <select name="sede" id="sede" required>
+                    <option value="">Seleccione una sede</option>
+                    <option value="Unidad de estudio superiores" {% if sesion.sede == 'Unidad de estudio superiores' %}selected{% endif %}>Universidad Mexiquense del Bicentenario</option>
+                    <option value="San José del Rincón" {% if sesion.sede == 'San José del Rincón' %}selected{% endif %}>Municipalidad de San José del Rincón</option>
+                </select>
+                <div class="error-message" id="error-sede"></div>
             </div>
             
             <div class="form-group">
@@ -119,6 +136,12 @@
                 <label>Describe los materiales necesarios</label>
                 <textarea name="descripcion_materiales" id="descripcion_materiales" rows="2">{{ sesion.descripcion_materiales or '' }}</textarea>
                 <div class="error-message" id="error-descripcion_materiales">La descripción de materiales es requerida</div>
+            </div>
+
+            <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" name="fecha" id="fecha" required value="{{ sesion.fecha_str or sesion.fecha }}">
+                <div class="error-message" id="error-fecha">La fecha no puede ser anterior al día de hoy</div>
             </div>
 
             <div class="form-row">

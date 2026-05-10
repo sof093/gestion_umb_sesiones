@@ -387,13 +387,10 @@ def nueva_sesion():
     if not session.get('admin_logged'):
         return redirect(url_for('index'))
     
-    conexion = config.conectar_db()
-    if not conexion:
-        flash('Error de conexión', 'error')
-        return redirect(url_for('admin_dashboard'))
-    
     if request.method == 'POST':
+        conexion = None
         try:
+            # Obtener datos del formulario
             sede = request.form.get('sede')
             nombre_de_sesion = request.form.get('nombre_de_sesion')
             fecha = request.form.get('fecha')
@@ -408,76 +405,80 @@ def nueva_sesion():
             cupo_audiencia = request.form.get('cupo_audiencia')
             id_carrera = request.form.get('id_carrera') or None
             id_escenario = request.form.get('id_escenario')
+            id_evento = request.form.get('id_evento')
+            
+            # DEBUG: Imprimir datos recibidos
+            print(f"DEBUG - Datos recibidos: id_evento={id_evento}, fecha={fecha}, tipo={id_tipo_sesion}")
             
             # ============================================
-            # VALIDACIONES DE BACKEND
+            # VALIDACIONES BÁSICAS
             # ============================================
+            if not all([sede, nombre_de_sesion, fecha, nombre_ponente, 
+                       apellido_paterno, id_tipo_sesion, hora_inicio, 
+                       hora_fin, id_escenario, id_evento]):
+                return jsonify({
+                    'success': False, 
+                    'message': 'Todos los campos obligatorios deben ser llenados'
+                }), 400
             
-            # Validar nombres (solo letras)
-            if not validar_solo_letras(nombre_ponente):
-                flash('El nombre del ponente solo puede contener letras', 'error')
-                return redirect(url_for('nueva_sesion'))
-
-            if not validar_solo_letras(apellido_paterno):
-                flash('El apellido paterno solo puede contener letras', 'error')
-                return redirect(url_for('nueva_sesion'))
-
-            if apellido_materno and not validar_solo_letras(apellido_materno):
-                flash('El apellido materno solo puede contener letras', 'error')
-                return redirect(url_for('nueva_sesion'))
-
-            # Validar cupo
-            if cupo_audiencia and not validar_numero_positivo(cupo_audiencia):
-                flash('El cupo debe ser un número mayor a 0', 'error')
-                return redirect(url_for('nueva_sesion'))
-
+            # Validar evento existe
+            if not id_evento or id_evento == '':
+                return jsonify({
+                    'success': False, 
+                    'message': 'Debes seleccionar un evento válido'
+                }), 400
+            
+            conexion = config.conectar_db()
+            if not conexion:
+                return jsonify({
+                    'success': False, 
+                    'message': 'Error de conexión a la base de datos'
+                }), 500
+            
+            # Verificar que el evento existe
+            with conexion.cursor() as cursor:
+                cursor.execute("SELECT id_evento FROM evento WHERE id_evento = %s", (id_evento,))
+                if not cursor.fetchone():
+                    return jsonify({
+                        'success': False, 
+                        'message': f'El evento con ID {id_evento} no existe'
+                    }), 400
+            
             # Validar horas
             if not validar_horas(hora_inicio, hora_fin):
-                flash('La hora de fin debe ser posterior a la hora de inicio', 'error')
-                return redirect(url_for('nueva_sesion'))
-
-            # Validar fecha (no pasada)
-            if not validar_fecha_no_pasada(fecha):
-                flash('La fecha no puede ser anterior al día de hoy', 'error')
-                return redirect(url_for('nueva_sesion'))
+                return jsonify({
+                    'success': False, 
+                    'message': 'La hora de fin debe ser posterior a la hora de inicio'
+                }), 400
             
             # ============================================
-            # FIN DE VALIDACIONES
+            # PROCESAR CAMPOS ADICIONALES
             # ============================================
             
-            # --- 2. Lógica para el campo 'procedencia_institucion_independiente' ---
+            # Procedencia
             tipo_procedencia = request.form.get('tipo_procedencia')
             nombre_institucion = None
             if tipo_procedencia == 'institucion':
                 nombre_institucion = request.form.get('procedencia_institucion_independiente')
-                if not nombre_institucion:
-                    flash('Por favor, ingrese el nombre de la institución', 'error')
-                    return redirect(url_for('nueva_sesion'))
             
-            # --- 3. Lógica para el campo 'descripcion_materiales' ---
+            # Materiales
             requiere_materiales = request.form.get('requiere_materiales')
             descripcion_materiales = None
             if requiere_materiales == 'si':
                 descripcion_materiales = request.form.get('descripcion_materiales')
-                if not descripcion_materiales:
-                    flash('Por favor, describa los materiales necesarios', 'error')
-                    return redirect(url_for('nueva_sesion'))
             
-            # --- 4. Procesar fotografía del ponente ---
+            # Procesar fotografía
             fotografia = request.files.get('fotografia')
             fotografia_path = None
-            if fotografia and fotografia.filename and allowed_file(fotografia.filename):
-                ext = fotografia.filename.rsplit('.', 1)[1].lower()
-                filename = f"sesion_{uuid.uuid4().hex}.{ext}"
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                fotografia.save(filepath)
-                fotografia_path = f"uploads/sesiones/{filename}"
-            elif fotografia and fotografia.filename:
-                # Si se subió un archivo pero no es válido
-                flash('El archivo de fotografía debe ser una imagen (JPG, PNG, GIF, WEBP)', 'error')
-                return redirect(url_for('nueva_sesion'))
+            if fotografia and fotografia.filename:
+                if allowed_file(fotografia.filename):
+                    ext = fotografia.filename.rsplit('.', 1)[1].lower()
+                    filename = f"sesion_{uuid.uuid4().hex}.{ext}"
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    fotografia.save(filepath)
+                    fotografia_path = f"uploads/sesiones/{filename}"
             
-            # --- 5. Procesar logo institucional ---
+            # Procesar logo
             logo = request.files.get('logo')
             logo_path = None
             if tipo_procedencia == 'institucion' and logo and logo.filename:
@@ -487,29 +488,36 @@ def nueva_sesion():
                     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     logo.save(filepath)
                     logo_path = f"uploads/sesiones/{filename}"
-                else:
-                    flash('El archivo de logo debe ser una imagen (JPG, PNG, GIF, WEBP)', 'error')
-                    return redirect(url_for('nueva_sesion'))
             
-            # --- 6. Insertar en la base de datos ---
+            # ============================================
+            # INSERTAR EN BASE DE DATOS
+            # ============================================
             with conexion.cursor() as cursor:
                 sql = """
                     INSERT INTO sesion (
-                        sede,nombre_de_sesion, fecha, fotografia, nombre_ponente, apellido_paterno, 
-                        apellido_materno, perfil_profesional, biografia, id_tipo_sesion,
+                        sede, nombre_de_sesion, fecha, fotografia, 
+                        nombre_ponente, apellido_paterno, apellido_materno, 
+                        perfil_profesional, biografia, id_tipo_sesion,
                         hora_inicio, hora_fin, cupo_audiencia, descripcion_materiales,
-                        id_carrera, id_escenario, procedencia_institucion_independiente, logo
+                        id_carrera, id_escenario, procedencia_institucion_independiente, 
+                        logo, id_evento
                     ) VALUES (
-                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s
                     )
                 """
                 cursor.execute(sql, (
-                    sede, nombre_de_sesion,fecha, fotografia_path, nombre_ponente, apellido_paterno,
-                    apellido_materno, perfil_profesional, biografia, id_tipo_sesion,
+                    sede, nombre_de_sesion, fecha, fotografia_path,
+                    nombre_ponente, apellido_paterno, apellido_materno,
+                    perfil_profesional, biografia, id_tipo_sesion,
                     hora_inicio, hora_fin, cupo_audiencia, descripcion_materiales,
-                    id_carrera, id_escenario, nombre_institucion, logo_path
+                    id_carrera, id_escenario, nombre_institucion,
+                    logo_path, id_evento
                 ))
                 conexion.commit()
+                
+                nuevo_id = cursor.lastrowid
+                print(f"DEBUG - Sesión creada con ID: {nuevo_id} para evento: {id_evento}")
             
             return jsonify({
                 'success': True, 
@@ -517,17 +525,36 @@ def nueva_sesion():
                 'redirect': '/admin/sesiones'
             })
             
+        except pymysql.Error as e:
+            if conexion:
+                conexion.rollback()
+            print(f"Error MySQL: {e}")
+            return jsonify({
+                'success': False, 
+                'message': f'Error de base de datos: {str(e)}'
+            }), 500
         except Exception as e:
-            conexion.rollback()
-            print(f"Error al registrar sesión: {e}")
+            if conexion:
+                conexion.rollback()
+            print(f"Error general: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({
                 'success': False, 
                 'message': f'Error: {str(e)}'
             }), 500
         finally:
-            conexion.close()
+            if conexion:
+                conexion.close()
     
-    # --- Método GET: Cargar datos para selects ---
+    # ============================================
+    # MÉTODO GET - Cargar formulario
+    # ============================================
+    conexion = config.conectar_db()
+    if not conexion:
+        flash('Error de conexión', 'error')
+        return redirect(url_for('admin_dashboard'))
+    
     try:
         with conexion.cursor() as cursor:
             cursor.execute("SELECT * FROM tipo_sesion")
@@ -538,13 +565,29 @@ def nueva_sesion():
             
             cursor.execute("SELECT id_carrera, nombre_carrera FROM carreras")
             carreras = cursor.fetchall()
+            
+            # Cargar eventos disponibles
+            cursor.execute("""
+                SELECT id_evento, nombre, fecha_inicio, fecha_fin, activo 
+                FROM evento 
+                ORDER BY activo DESC, fecha_inicio DESC
+            """)
+            eventos = cursor.fetchall()
+            
+    except Exception as e:
+        print(f"Error al cargar datos: {e}")
+        tipos_sesion = []
+        escenarios = []
+        carreras = []
+        eventos = []
     finally:
         conexion.close()
     
     return render_template('admin_nueva_sesion.html', 
                          tipos_sesion=tipos_sesion,
                          escenarios=escenarios,
-                         carreras=carreras)
+                         carreras=carreras,
+                         eventos=eventos)
 
 @app.route('/api/tipos-sesion')
 def api_tipos_sesion():
@@ -655,6 +698,7 @@ def admin_editar_sesion(id):
     if request.method == 'POST':
         try:
             # Obtener datos del formulario
+            id_evento = request.form.get('id_evento')  
             sede = request.form.get('sede')
             nombre_de_sesion = request.form.get('nombre_de_sesion')
             fecha = request.form.get('fecha')
@@ -759,12 +803,12 @@ def admin_editar_sesion(id):
                         perfil_profesional = %s, biografia = %s, id_tipo_sesion = %s,
                         hora_inicio = %s, hora_fin = %s, cupo_audiencia = %s,
                         descripcion_materiales = %s, id_carrera = %s, id_escenario = %s,
-                        procedencia_institucion_independiente = %s
+                        procedencia_institucion_independiente = %s, id_evento = %s
                 """
                 params = [sede, nombre_de_sesion, fecha, nombre_ponente, apellido_paterno,
                           apellido_materno, perfil_profesional, biografia, id_tipo_sesion,
                           hora_inicio, hora_fin, cupo_audiencia, descripcion_materiales,
-                          id_carrera, id_escenario, procedencia]
+                          id_carrera, id_escenario, procedencia, id_evento]
                 
                 # Agregar campos opcionales si hay archivos nuevos
                 if fotografia_path:
@@ -808,6 +852,9 @@ def admin_editar_sesion(id):
     # ============================================
     # MÉTODO GET - Cargar datos de la sesión
     # ============================================
+# ============================================
+# MÉTODO GET - Cargar datos de la sesión
+# ============================================
     try:
         with conexion.cursor() as cursor:
             cursor.execute("SELECT * FROM sesion WHERE id_sesion = %s", (id,))
@@ -846,18 +893,29 @@ def admin_editar_sesion(id):
             cursor.execute("SELECT id_carrera, nombre_carrera FROM carreras")
             carreras = cursor.fetchall()
             
+            # ============================================
+            # CARGAR EVENTOS (IGUAL QUE EN NUEVA)
+            # ============================================
+            cursor.execute("""
+                SELECT id_evento, nombre, fecha_inicio, fecha_fin, activo 
+                FROM evento 
+                ORDER BY activo DESC, fecha_inicio DESC
+            """)
+            eventos = cursor.fetchall()
+            
     except Exception as e:
         print(f"Error al cargar sesión: {e}")
         flash('Error al cargar la sesión', 'error')
         return redirect(url_for('admin_sesiones'))
     finally:
         conexion.close()
-    
+
     return render_template('admin_editar_sesion.html', 
-                         sesion=sesion,
-                         tipos_sesion=tipos_sesion,
-                         escenarios=escenarios,
-                         carreras=carreras)
+                        sesion=sesion,
+                        tipos_sesion=tipos_sesion,
+                        escenarios=escenarios,
+                        carreras=carreras,
+                        eventos=eventos)  # ← Pasar eventos al template
 
 @app.route('/admin/sesion/eliminar/<int:id>', methods=['POST'])
 def admin_eliminar_sesion(id):
@@ -1505,13 +1563,45 @@ def cambiar_password():
     
     return render_template('cambiar_password.html')
 
+# En alumno_dashboard() de app.py
 @app.route('/alumno/dashboard')
 def alumno_dashboard():
-    """Dashboard del alumno (por implementar)"""
     if not session.get('user_tipo') == 'alumno':
         return redirect(url_for('login'))
     
-    return render_template('alumno_dashboard.html', nombre=session.get('user_nombre'))
+    conexion = config.conectar_db()
+    evento_publicado = None
+    sesiones = []
+    
+    try:
+        with conexion.cursor() as cursor:
+            # Obtener evento publicado
+            cursor.execute("""
+                SELECT * FROM evento 
+                WHERE publicado = TRUE AND activo = 1
+                ORDER BY fecha_publicacion DESC LIMIT 1
+            """)
+            evento_publicado = cursor.fetchone()
+            
+            if evento_publicado:
+                # Obtener sesiones de ese evento
+                cursor.execute("""
+                    SELECT s.*, ts.nombre_sesion as tipo, 
+                           e.nombre_escenario as escenario_nombre
+                    FROM sesion s
+                    JOIN tipo_sesion ts ON s.id_tipo_sesion = ts.id_tipo_sesion
+                    JOIN escenarios e ON s.id_escenario = e.id_escenario
+                    WHERE s.id_evento = %s
+                    ORDER BY s.fecha, s.hora_inicio
+                """, (evento_publicado['id_evento'],))
+                sesiones = cursor.fetchall()
+    finally:
+        conexion.close()
+    
+    return render_template('alumno_dashboard.html', 
+                         evento=evento_publicado,
+                         sesiones=sesiones,
+                         nombre=session.get('user_nombre'))
 # ==================== EVENTOS CRUD ====================
 
 @app.route("/api/eventos", methods=["GET"])
@@ -1945,6 +2035,104 @@ def exportar_itinerario_html(id_evento):
         return redirect(url_for("admin_sesiones"))
     finally:
         con.close()
+
+@app.route("/api/eventos/<int:id_evento>/publicar", methods=["POST"])
+def api_publicar_evento(id_evento):
+    """Publica u oculta un evento (visible para estudiantes)"""
+    if not session.get("admin_logged"):
+        return jsonify({"success": False, "message": "No autorizado"}), 401
+    
+    data = request.get_json()
+    publicado = data.get("publicado", False)
+    
+    con = config.conectar_db()
+    if not con:
+        return jsonify({"success": False, "message": "Error de conexión"}), 500
+    
+    try:
+        with con.cursor() as cur:
+            # Si vamos a publicar este, despublicamos los demás
+            if publicado:
+                cur.execute("UPDATE evento SET publicado = FALSE")
+            
+            cur.execute("""
+                UPDATE evento 
+                SET publicado = %s, fecha_publicacion = %s
+                WHERE id_evento = %s
+            """, (publicado, datetime.now() if publicado else None, id_evento))
+            
+        con.commit()
+        
+        mensaje = "Jornada publicada exitosamente" if publicado else "Jornada ocultada"
+        return jsonify({"success": True, "message": mensaje})
+    except Exception as e:
+        con.rollback()
+        print(f"[api_publicar_evento] {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        con.close()
+
+@app.route('/admin/verificar_disponibilidad', methods=['POST'])
+def verificar_disponibilidad():
+    """Verifica si un escenario está disponible en una fecha y horario"""
+    try:
+        data = request.get_json()
+        id_escenario = data.get('id_escenario')
+        fecha = data.get('fecha')
+        hora_inicio = data.get('hora_inicio')
+        hora_fin = data.get('hora_fin')
+        id_sesion_actual = data.get('id_sesion', None)  # Para edición, excluir la sesión actual
+        
+        if not all([id_escenario, fecha, hora_inicio, hora_fin]):
+            return jsonify({'disponible': False, 'mensaje': 'Faltan datos para verificar'})
+        
+        conexion = config.conectar_db()
+        if not conexion:
+            return jsonify({'disponible': False, 'mensaje': 'Error de conexión'})
+        
+        with conexion.cursor() as cursor:
+            # Buscar sesiones que ocupen el mismo escenario en el mismo rango horario
+            sql = """
+                SELECT id_sesion, nombre_de_sesion, hora_inicio, hora_fin
+                FROM sesion 
+                WHERE id_escenario = %s 
+                AND fecha = %s
+                AND (
+                    (hora_inicio < %s AND hora_fin > %s) OR  -- Superposición parcial
+                    (hora_inicio BETWEEN %s AND %s) OR
+                    (hora_fin BETWEEN %s AND %s) OR
+                    (%s BETWEEN hora_inicio AND hora_fin)
+                )
+            """
+            
+            # Si es edición, excluir la sesión actual
+            if id_sesion_actual:
+                sql += " AND id_sesion != %s"
+                params = (id_escenario, fecha, hora_fin, hora_inicio, 
+                         hora_inicio, hora_fin, hora_inicio, hora_fin,
+                         hora_inicio, id_sesion_actual)
+            else:
+                params = (id_escenario, fecha, hora_fin, hora_inicio, 
+                         hora_inicio, hora_fin, hora_inicio, hora_fin,
+                         hora_inicio)
+            
+            cursor.execute(sql, params)
+            conflicto = cursor.fetchone()
+            
+            if conflicto:
+                return jsonify({
+                    'disponible': False, 
+                    'mensaje': f'El escenario ya está ocupado de {conflicto["hora_inicio"]} a {conflicto["hora_fin"]} por la sesión: "{conflicto["nombre_de_sesion"]}"'
+                })
+            
+            return jsonify({'disponible': True, 'mensaje': 'Escenario disponible'})
+            
+    except Exception as e:
+        print(f"Error al verificar disponibilidad: {e}")
+        return jsonify({'disponible': False, 'mensaje': 'Error al verificar disponibilidad'})
+    finally:
+        if conexion:
+            conexion.close()
         
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

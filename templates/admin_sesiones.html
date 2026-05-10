@@ -48,7 +48,7 @@
     <a href="{{ url_for('nueva_sesion') }}" class="btn-nueva">+ Nueva sesión</a>
 </div>
 
-<!-- ==================== BARRA DE EVENTO (AGREGAR) ==================== -->
+<!-- ==================== BARRA DE EVENTO ==================== -->
 <div class="evento-bar">
     <div class="evento-bar-left">
         <div class="evento-icon"><i class="fas fa-calendar-alt"></i></div>
@@ -58,7 +58,16 @@
         </div>
     </div>
     <div class="evento-bar-right">
+        <button id="btnActivarEvento" class="btn-evento" style="background: var(--verde-oscuro); color: white;">
+        <i class="fas fa-check-circle"></i> 
+        <span>Activar esta jornada</span>
+    </button>
         <div id="eventoMeta" class="evento-meta"></div>
+
+        <button id="btnPublicarJornada" class="btn-evento" style="background: var(--dorado); color: var(--verde-oscuro);">
+            <i class="fas fa-globe-americas"></i> 
+            <span id="publicarBtnText">Publicar jornada</span>
+        </button>
         <button id="btnNuevoEvento" class="btn-evento">
             <i class="fas fa-plus-circle"></i> Nueva jornada
         </button>
