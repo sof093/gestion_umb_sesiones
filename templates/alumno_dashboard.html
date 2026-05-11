@@ -1,21 +1,278 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>Panel del Alumno</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f4f6f3; }
-        .container { max-width: 800px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; }
-        h1 { color: #1a3a2a; }
-        .btn { background: #2d5a3d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
-        .btn:hover { background: #1a3a2a; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jornada Académica — UES San José del Rincón</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/base_alumno.css">
+    <link rel="stylesheet" href="/static/css/alumno_dashboard.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Bienvenido, {{ nombre }}</h1>
-        <p>Esta es tu área personal. Pronto podrás ver las sesiones disponibles.</p>
-        <a href="{{ url_for('logout') }}" class="btn">Cerrar Sesión</a>
+
+<!-- ============================================================
+     NAVBAR
+============================================================ -->
+<nav class="navbar">
+    <span class="navbar-brand">UES San José del Rincón</span>
+    
+    <button class="navbar-toggle" id="navbarToggle" aria-label="Menú">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="navbar-collapse" id="navbarCollapse">
+        <div class="navbar-right">
+            <a href="{{ url_for('alumno_agenda') }}" class="nav-link-pill">
+                <i class="fas fa-calendar-check"></i> Mi Agenda
+            </a>
+            <button class="btn-icon-nav" id="themeToggle" title="Cambiar tema">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+            <div class="user-chip">
+                <div class="avatar" id="navAvatar">A</div>
+                <span class="user-name" id="navNombre">Alumno</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn-icon-nav" id="logoutBtn" title="Cerrar sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
     </div>
+</nav>
+
+<!-- ============================================================
+     HERO
+============================================================ -->
+<div class="hero">
+    {% if evento %}
+    <div class="hero-tag"><i class="fas fa-calendar-check"></i> Jornada activa</div>
+    <h1>{{ evento.nombre }}</h1>
+    <p class="hero-sub">
+        {% if evento.fecha_inicio and evento.fecha_fin %}
+            Del {{ evento.fecha_inicio.strftime('%d/%m/%Y') if evento.fecha_inicio.strftime is defined else evento.fecha_inicio }}
+            al {{ evento.fecha_fin.strftime('%d/%m/%Y') if evento.fecha_fin.strftime is defined else evento.fecha_fin }}
+        {% endif %}
+        &nbsp;·&nbsp; Explora las sesiones disponibles
+    </p>
+    {% else %}
+    <div class="hero-tag"><i class="fas fa-university"></i> UES San José del Rincón</div>
+    <h1>Bienvenido a la Jornada Académica</h1>
+    <p class="hero-sub">Pronto habrá sesiones disponibles para explorar</p>
+    {% endif %}
+</div>
+
+<!-- ============================================================
+     CONTROLES
+============================================================ -->
+{% if sesiones %}
+<div class="controls-bar">
+    <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="buscarInput" placeholder="Buscar por nombre, conferencista...">
+    </div>
+    <select class="filter-select" id="filtroTipo">
+        <option value="">Todas las sesiones</option>
+        <option value="Inauguración">Inauguración</option>
+        <option value="Conferencia magistral">Conferencia magistral</option>
+        <option value="Conferencia">Conferencia</option>
+        <option value="Taller">Taller</option>
+        <option value="Exhibición">Exhibición</option>
+        <option value="Panel">Panel</option>
+        <option value="Cierre del evento">Cierre del evento</option>
+    </select>
+</div>
+{% endif %}
+
+<!-- ============================================================
+     CONTENIDO PRINCIPAL
+============================================================ -->
+<main>
+{% if not evento %}
+    <div class="no-evento">
+        <i class="fas fa-calendar-times"></i>
+        <h2 style="color:var(--texto-oscuro); margin-bottom:.5rem;">Sin jornada activa</h2>
+        <p style="color:var(--texto-medio); font-size:.9rem;">El administrador aún no ha publicado ninguna jornada académica. Vuelve pronto.</p>
+    </div>
+
+{% elif not sesiones %}
+    <div class="estado-msg">
+        <i class="fas fa-inbox"></i>
+        <p>Aún no hay sesiones registradas para esta jornada.</p>
+    </div>
+
+{% else %}
+    <div class="sesiones-grid" id="sesionesGrid">
+        {% for s in sesiones %}
+        {% set tipo = s.tipo or 'default' %}
+        {% set nombre_ponente = (s.nombre_ponente or '') ~ ' ' ~ (s.apellido_paterno or '') ~ ' ' ~ (s.apellido_materno or '') %}
+        {% set iniciales = ((s.nombre_ponente or 'X')[0] | upper) ~ ((s.apellido_paterno or 'X')[0] | upper) %}
+
+        {% if 'magistral' in tipo.lower() %}{% set acc = 'acc-magistral' %}
+        {% elif 'conferencia' in tipo.lower() %}{% set acc = 'acc-conferencia' %}
+        {% elif 'taller' in tipo.lower() %}{% set acc = 'acc-taller' %}
+        {% elif 'exhibi' in tipo.lower() %}{% set acc = 'acc-exhibicion' %}
+        {% elif 'panel' in tipo.lower() %}{% set acc = 'acc-panel' %}
+        {% elif 'cierre' in tipo.lower() %}{% set acc = 'acc-cierre' %}
+        {% elif 'inaugur' in tipo.lower() %}{% set acc = 'acc-inauguracion' %}
+        {% else %}{% set acc = 'acc-default' %}{% endif %}
+
+        <div class="card"
+             data-titulo="{{ s.nombre_de_sesion | lower }}"
+             data-ponente="{{ nombre_ponente | lower }}"
+             data-tipo="{{ tipo }}"
+             data-id="{{ s.id_sesion }}">
+
+            <div class="card-accent {{ acc }}"></div>
+
+            <div class="card-body">
+                <div class="card-titulo">{{ s.nombre_de_sesion or 'Sin nombre' }}</div>
+
+                <div class="card-ponente">
+                    <div class="ponente-avatar">{{ iniciales }}</div>
+                    <div class="ponente-info">
+                        <div class="ponente-nombre">{{ nombre_ponente.strip() or 'Ponente no asignado' }}</div>
+                        <div class="tipo-badge">{{ tipo }}</div>
+                    </div>
+                </div>
+
+                <div class="card-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ s.escenario_nombre or 'N/A' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="far fa-clock"></i>
+                        <span>
+                            {% if s.hora_inicio %}
+                                {{ s.hora_inicio.strftime('%I:%M %p') if s.hora_inicio.strftime is defined else s.hora_inicio }}
+                                a
+                                {{ s.hora_fin.strftime('%I:%M %p') if s.hora_fin and s.hora_fin.strftime is defined else s.hora_fin or '' }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-users"></i>
+                        <span>{{ s.cupo_audiencia or 0 }} asistentes</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="far fa-calendar"></i>
+                        <span>{{ s.fecha.strftime('%d/%m/%Y') if s.fecha and s.fecha.strftime is defined else s.fecha or 'N/A' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <button class="btn-detalle" onclick="abrirModal({{ s.id_sesion }})">
+                    Ver detalles <i class="fas fa-arrow-right"></i>
+                </button>
+                <button class="btn-fav" data-id="{{ s.id_sesion }}" onclick="toggleInscripcion(this)">
+                    <i class="far fa-heart"></i>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="estado-msg" id="sinResultados" style="display:none;">
+        <i class="fas fa-search"></i>
+        <p>No se encontraron sesiones con ese criterio.</p>
+    </div>
+{% endif %}
+</main>
+
+<!-- ============================================================
+     MODAL DE DETALLE
+============================================================ -->
+<div class="modal-overlay" id="modalOverlay" onclick="cerrarModalClick(event)">
+    <div class="modal-box">
+        <div class="modal-head" id="modalHead"></div>
+        <div class="modal-content">
+            <button class="modal-close" onclick="cerrarModal()" title="Cerrar">&times;</button>
+            <div class="modal-tipo" id="modalTipo"></div>
+            <h2 class="modal-titulo" id="modalTitulo">—</h2>
+
+            <div class="modal-ponente-row">
+                <div class="modal-ponente-avatar" id="modalAvatar">??</div>
+                <div>
+                    <div style="font-weight:700; color:var(--texto-oscuro); margin-bottom:.2rem;" id="modalPonenteNombre">—</div>
+                    <div style="font-size:.82rem; color:var(--texto-suave);" id="modalPerfil">—</div>
+                </div>
+            </div>
+
+            <div class="modal-grid">
+                <div class="modal-dato">
+                    <div class="modal-dato-label"><i class="far fa-calendar"></i> Fecha</div>
+                    <div class="modal-dato-val" id="modalFecha">—</div>
+                </div>
+                <div class="modal-dato">
+                    <div class="modal-dato-label"><i class="far fa-clock"></i> Horario</div>
+                    <div class="modal-dato-val" id="modalHorario">—</div>
+                </div>
+                <div class="modal-dato">
+                    <div class="modal-dato-label"><i class="fas fa-map-marker-alt"></i> Escenario</div>
+                    <div class="modal-dato-val" id="modalEscenario">—</div>
+                </div>
+                <div class="modal-dato">
+                    <div class="modal-dato-label"><i class="fas fa-users"></i> Cupo</div>
+                    <div class="modal-dato-val" id="modalCupo">—</div>
+                </div>
+            </div>
+
+            <div class="modal-section" id="modalBioSection" style="display:none;">
+                <div class="modal-section-label">Biografía del ponente</div>
+                <div class="modal-section-body" id="modalBio"></div>
+            </div>
+
+            <button class="btn-quitar-modal" id="btnQuitarModal" style="display:none;" onclick="quitarInscripcionModal()">
+                <i class="fas fa-heart-broken"></i> Quitar de mi agenda
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     FOOTER
+============================================================ -->
+<footer>
+    <strong>© 2026 UES San José del Rincón</strong><br>
+    Jornada académica y cultural<br>
+    Todos los derechos reservados.
+</footer>
+
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
+<script>
+    // Datos embebidos del servidor
+    window.NOMBRE_ALUMNO = {{ nombre | tojson }};
+    window.SESIONES_DATA = {
+        {% for s in sesiones %}
+        {{ s.id_sesion }}: {
+            titulo: {{ (s.nombre_de_sesion or 'Sin nombre') | tojson }},
+            tipo: {{ (s.tipo or '') | tojson }},
+            ponente: {{ ((s.nombre_ponente or '') ~ ' ' ~ (s.apellido_paterno or '') ~ ' ' ~ (s.apellido_materno or '')) | trim | tojson }},
+            iniciales: {{ (((s.nombre_ponente or 'X')[0] | upper) ~ ((s.apellido_paterno or 'X')[0] | upper)) | tojson }},
+            perfil: {{ (s.perfil_profesional or '') | tojson }},
+            bio: {{ (s.biografia or '') | tojson }},
+            escenario: {{ (s.escenario_nombre or 'N/A') | tojson }},
+            cupo: {{ s.cupo_audiencia or 0 }},
+            fecha: {% if s.fecha and s.fecha.strftime is defined %}{{ s.fecha.strftime('%d/%m/%Y') | tojson }}{% else %}{{ (s.fecha | string) | tojson }}{% endif %},
+            inicio: {% if s.hora_inicio and s.hora_inicio.strftime is defined %}{{ s.hora_inicio.strftime('%I:%M %p') | tojson }}{% else %}{{ (s.hora_inicio | string if s.hora_inicio else 'N/A') | tojson }}{% endif %},
+            fin: {% if s.hora_fin and s.hora_fin.strftime is defined %}{{ s.hora_fin.strftime('%I:%M %p') | tojson }}{% else %}{{ (s.hora_fin | string if s.hora_fin else 'N/A') | tojson }}{% endif %}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+</script>
+<script src="/static/js/global_alumno.js"></script>
+<script src="/static/js/alumno_dashboard.js"></script>
 </body>
 </html>

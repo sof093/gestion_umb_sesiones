@@ -519,22 +519,29 @@ async function publicarEvento() {
     
     if (result.isConfirmed) {
         try {
+            // ✅ CORREGIDO: fetch con la sintaxis correcta
             const res = await fetch(`/api/eventos/${evento.id_evento}/publicar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ publicado: nuevoEstado })
             });
+            
             const data = await res.json();
             
             if (data.success) {
+                // Actualizar el estado local
                 evento.publicado = nuevoEstado;
+                CalState.eventoActivo = evento;
+                
                 actualizarBotonPublicacion(nuevoEstado);
+                
                 Swal.fire('¡Listo!', data.message, 'success');
             } else {
-                throw new Error(data.message);
+                throw new Error(data.message || 'Error al publicar/ocultar');
             }
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            console.error('Error en publicarEvento:', error);
+            Swal.fire('Error', error.message || 'Error de conexión', 'error');
         }
     }
 }
@@ -542,17 +549,29 @@ async function publicarEvento() {
 function actualizarBotonPublicacion(estaPublicado) {
     const btn = document.getElementById('btnPublicarJornada');
     const btnText = document.getElementById('publicarBtnText');
-    if (!btn) return;
+    
+    if (!btn) {
+        console.warn('Botón btnPublicarJornada no encontrado');
+        return;
+    }
     
     if (estaPublicado) {
         btn.style.background = '#dc3545';
         btn.style.color = 'white';
-        btnText.innerHTML = '<i class="fas fa-eye-slash"></i> Ocultar jornada';
+        if (btnText) {
+            btnText.innerHTML = '<i class="fas fa-eye-slash"></i> Ocultar jornada';
+        } else {
+            btn.innerHTML = '<i class="fas fa-eye-slash"></i> Ocultar jornada';
+        }
         btn.title = 'Los estudiantes pueden ver esta jornada';
     } else {
         btn.style.background = 'var(--dorado)';
         btn.style.color = 'var(--verde-oscuro)';
-        btnText.innerHTML = '<i class="fas fa-globe-americas"></i> Publicar jornada';
+        if (btnText) {
+            btnText.innerHTML = '<i class="fas fa-globe-americas"></i> Publicar jornada';
+        } else {
+            btn.innerHTML = '<i class="fas fa-globe-americas"></i> Publicar jornada';
+        }
         btn.title = 'Publicar para que los estudiantes vean esta jornada';
     }
 }

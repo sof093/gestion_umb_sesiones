@@ -1,3 +1,4 @@
+<!--admin_sesiones.html-->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -76,7 +77,7 @@
                 <i class="fas fa-calendar-week"></i> Calendario
             </button>
             <button class="view-btn" data-view="tabla">
-                <i class="fas fa-table"></i> Tabla
+                <i class="fas fa-table"></i> Sesiones
             </button>
         </div>
     </div>
@@ -259,16 +260,6 @@
 <script src="/static/js/menu.js"></script>
 <script src="/static/js/calendario.js"></script>
 
-<script>
-    // Función global para ver detalles de sesión desde el calendario
-    window.verDetalles = function(idSesion) {
-        const modal = document.getElementById("modalIframe");
-        const iframe = document.getElementById("modalIframeContent");
-        if (modal && iframe) {
-            iframe.src = `/admin/ver-sesion?id=${idSesion}`;
-            modal.style.display = "flex";
-        }
-    };
-</script>
+
 </body>
 </html>

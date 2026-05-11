@@ -13,6 +13,8 @@ import secrets
 from datetime import datetime, timedelta
 import secrets
 from datetime import datetime, timedelta
+import json
+
 
 # ==================== CONFIGURACIÓN DE CORREO ====================
 app = config.app
@@ -191,6 +193,40 @@ def validar_fecha_no_pasada(fecha_str):
         return fecha >= date.today()
     except:
         return False
+
+# ==================== FUNCIONES DE FORMATEO ====================
+def formatear_fecha(valor, formato='%d/%m/%Y'):
+    """Formatea fecha para mostrar en el template"""
+    if valor is None:
+        return 'N/A'
+    if hasattr(valor, 'strftime'):
+        return valor.strftime(formato)
+    return str(valor)
+
+def formatear_hora(valor):
+    """Formatea hora para mostrar en el template"""
+    if valor is None:
+        return None
+    if hasattr(valor, 'strftime'):
+        return valor.strftime('%I:%M %p')
+    if isinstance(valor, timedelta):
+        total_seconds = valor.seconds
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        return f"{hours:02d}:{minutes:02d}"
+    return str(valor)
+
+def convertir_hora_para_input(valor):
+    """Convierte hora a formato HH:MM para input time"""
+    if valor is None:
+        return None
+    if hasattr(valor, 'strftime'):
+        return valor.strftime('%H:%M')
+    if isinstance(valor, timedelta):
+        hours = valor.seconds // 3600
+        minutes = (valor.seconds % 3600) // 60
+        return f"{hours:02d}:{minutes:02d}"
+    return str(valor)[:5] if valor else None
 
 # ==================== CONFIGURACIÓN ====================
 
@@ -1681,6 +1717,7 @@ def cambiar_password():
     return render_template('cambiar_password.html')
 
 # En alumno_dashboard() de app.py
+# ==================== DASHBOARD ALUMNO (CORREGIDO) ====================
 @app.route('/alumno/dashboard')
 def alumno_dashboard():
     if not session.get('user_tipo') == 'alumno':
@@ -1711,13 +1748,92 @@ def alumno_dashboard():
                     WHERE s.id_evento = %s
                     ORDER BY s.fecha, s.hora_inicio
                 """, (evento_publicado['id_evento'],))
-                sesiones = cursor.fetchall()
+                sesiones_raw = cursor.fetchall()
+                
+                # Procesar cada sesión para agregar campos display
+                for sesion in sesiones_raw:
+                    sesion_dict = dict(sesion)
+                    
+                    # Agregar fecha display
+                    if sesion_dict.get('fecha'):
+                        sesion_dict['fecha_display'] = formatear_fecha(sesion_dict.get('fecha'))
+                    else:
+                        sesion_dict['fecha_display'] = 'N/A'
+                    
+                    # Agregar horario display
+                    hora_inicio = sesion_dict.get('hora_inicio')
+                    hora_fin = sesion_dict.get('hora_fin')
+                    inicio_str = formatear_hora(hora_inicio)
+                    fin_str = formatear_hora(hora_fin)
+                    if inicio_str and fin_str:
+                        sesion_dict['horario_display'] = f"{inicio_str} – {fin_str}"
+                    elif inicio_str:
+                        sesion_dict['horario_display'] = inicio_str
+                    else:
+                        sesion_dict['horario_display'] = 'N/A'
+                    
+                    # Agregar nombre completo del ponente
+                    nombre_parts = filter(None, [
+                        sesion_dict.get('nombre_ponente', ''),
+                        sesion_dict.get('apellido_paterno', ''),
+                        sesion_dict.get('apellido_materno', '')
+                    ])
+                    nombre_comp = ' '.join(nombre_parts).strip()
+                    sesion_dict['nombre_ponente_completo'] = nombre_comp or 'Ponente no asignado'
+                    
+                    # Agregar iniciales
+                    nombre = sesion_dict.get('nombre_ponente', '')
+                    apellido = sesion_dict.get('apellido_paterno', '')
+                    if nombre and apellido:
+                        iniciales = (nombre[0] + apellido[0]).upper()
+                    elif nombre:
+                        iniciales = nombre[0].upper()
+                    else:
+                        iniciales = 'NA'
+                    sesion_dict['iniciales_ponente'] = iniciales
+                    
+                    sesiones.append(sesion_dict)
+                
+                # Agregar campos display al evento
+                if evento_publicado:
+                    evento_dict = dict(evento_publicado)
+                    evento_dict['fecha_inicio_display'] = formatear_fecha(evento_dict.get('fecha_inicio'))
+                    evento_dict['fecha_fin_display'] = formatear_fecha(evento_dict.get('fecha_fin'))
+                    evento_publicado = evento_dict
+                    
+    except Exception as e:
+        print(f"Error en alumno_dashboard: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         conexion.close()
+    
+    # ============================================
+    # CONSTRUIR JSON PARA EL MODAL (AQUÍ SÍ ESTÁ SESIONES DEFINIDA)
+    # ============================================
+    sesiones_json_dict = {}
+    for s in sesiones:
+        sid = str(s.get('id_sesion', ''))
+        if sid:
+            sesiones_json_dict[sid] = {
+                'titulo': s.get('nombre_de_sesion') or 'Sin nombre',
+                'tipo': s.get('tipo') or '',
+                'ponente': s.get('nombre_ponente_completo') or 'Ponente no asignado',
+                'iniciales': s.get('iniciales_ponente') or 'NA',
+                'perfil': s.get('perfil_profesional') or '',
+                'bio': s.get('biografia') or '',
+                'escenario': s.get('escenario_nombre') or 'N/A',
+                'cupo': s.get('cupo_audiencia') or 0,
+                'fecha': s.get('fecha_display') or 'N/A',
+                'horario': s.get('horario_display') or 'N/A'
+            }
+    
+    sesiones_json = json.dumps(sesiones_json_dict, ensure_ascii=False)
     
     return render_template('alumno_dashboard.html', 
                          evento=evento_publicado,
                          sesiones=sesiones,
+                         sesiones_json=sesiones_json,  # ← PASAR EL JSON AL TEMPLATE
                          nombre=session.get('user_nombre'))
 # ==================== EVENTOS CRUD ====================
 
@@ -2154,39 +2270,43 @@ def exportar_itinerario_html(id_evento):
     finally:
         con.close()
 
-@app.route("/api/eventos/<int:id_evento>/publicar", methods=["POST"])
+@app.route('/api/eventos/<int:id_evento>/publicar', methods=['POST'])
 def api_publicar_evento(id_evento):
-    """Publica u oculta un evento (visible para estudiantes)"""
-    if not session.get("admin_logged"):
-        return jsonify({"success": False, "message": "No autorizado"}), 401
-    
+    if not session.get('admin_logged'):
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+
     data = request.get_json()
-    publicado = data.get("publicado", False)
-    
+    publicado = data.get('publicado', False)
+
     con = config.conectar_db()
     if not con:
-        return jsonify({"success": False, "message": "Error de conexión"}), 500
-    
+        return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+
     try:
         with con.cursor() as cur:
-            # Si vamos a publicar este, despublicamos los demás
             if publicado:
-                cur.execute("UPDATE evento SET publicado = FALSE")
-            
-            cur.execute("""
-                UPDATE evento 
-                SET publicado = %s, fecha_publicacion = %s
-                WHERE id_evento = %s
-            """, (publicado, datetime.now() if publicado else None, id_evento))
-            
+                # Despublicar todos los eventos
+                cur.execute("UPDATE evento SET publicado = FALSE, activo = 0")
+                # Publicar Y activar este evento
+                cur.execute("""
+                    UPDATE evento 
+                    SET publicado = TRUE, activo = 1, fecha_publicacion = %s
+                    WHERE id_evento = %s
+                """, (datetime.now(), id_evento))
+            else:
+                cur.execute("""
+                    UPDATE evento 
+                    SET publicado = FALSE, fecha_publicacion = NULL
+                    WHERE id_evento = %s
+                """, (id_evento,))
+
         con.commit()
-        
         mensaje = "Jornada publicada exitosamente" if publicado else "Jornada ocultada"
-        return jsonify({"success": True, "message": mensaje})
+        return jsonify({'success': True, 'message': mensaje})
     except Exception as e:
         con.rollback()
         print(f"[api_publicar_evento] {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({'success': False, 'message': str(e)}), 500
     finally:
         con.close()
 
@@ -2251,6 +2371,312 @@ def verificar_disponibilidad():
     finally:
         if conexion:
             conexion.close()
-        
+            
+# ==================== INSCRIPCIONES DE ALUMNOS ====================
+
+@app.route('/alumno/inscribir/<int:id_sesion>', methods=['POST'])
+def alumno_inscribir(id_sesion):
+    """Inscribir a un alumno en una sesión"""
+    if not session.get('user_tipo') == 'alumno':
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    id_alumno = session.get('user_id')
+    
+    conexion = config.conectar_db()
+    if not conexion:
+        return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+    
+    try:
+        with conexion.cursor() as cursor:
+            # Verificar si ya está inscrito
+            cursor.execute("""
+                SELECT * FROM inscripciones 
+                WHERE id_alumno = %s AND id_sesion = %s
+            """, (id_alumno, id_sesion))
+            
+            if cursor.fetchone():
+                return jsonify({'success': False, 'message': 'Ya estás inscrito en esta sesión'})
+            
+            # Verificar cupo disponible
+            cursor.execute("""
+                SELECT s.cupo_audiencia, COUNT(i.id_inscripcion) as inscritos
+                FROM sesion s
+                LEFT JOIN inscripciones i ON s.id_sesion = i.id_sesion
+                WHERE s.id_sesion = %s
+                GROUP BY s.id_sesion
+            """, (id_sesion,))
+            
+            resultado = cursor.fetchone()
+            if resultado:
+                cupo = resultado['cupo_audiencia']
+                inscritos = resultado['inscritos']
+                
+                if cupo and inscritos >= cupo:
+                    return jsonify({'success': False, 'message': 'Cupo lleno para esta sesión'})
+            
+            # Insertar inscripción
+            cursor.execute("""
+                INSERT INTO inscripciones (id_alumno, id_sesion, fecha_inscripcion)
+                VALUES (%s, %s, NOW())
+            """, (id_alumno, id_sesion))
+            
+            conexion.commit()
+            
+            # Obtener datos para correo
+            cursor.execute("""
+                SELECT s.nombre_de_sesion, s.fecha, s.hora_inicio, s.hora_fin,
+                       e.nombre_escenario, ts.nombre_sesion as tipo
+                FROM sesion s
+                JOIN escenarios e ON s.id_escenario = e.id_escenario
+                JOIN tipo_sesion ts ON s.id_tipo_sesion = ts.id_tipo_sesion
+                WHERE s.id_sesion = %s
+            """, (id_sesion,))
+            sesion = cursor.fetchone()
+            
+            # Enviar correo de confirmación
+            email = session.get('user_email')
+            nombre_alumno = session.get('user_nombre')
+            
+            enviar_correo_inscripcion(
+                email, nombre_alumno, 
+                sesion['nombre_de_sesion'],
+                sesion['fecha'], sesion['hora_inicio'], sesion['hora_fin'],
+                sesion['nombre_escenario']
+            )
+            
+            return jsonify({'success': True, 'message': '✅ Inscripción exitosa'})
+            
+    except Exception as e:
+        conexion.rollback()
+        print(f"Error al inscribir: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conexion.close()
+
+
+@app.route('/alumno/desinscribir/<int:id_sesion>', methods=['POST'])
+def alumno_desinscribir(id_sesion):
+    """Quitar inscripción de una sesión"""
+    if not session.get('user_tipo') == 'alumno':
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    id_alumno = session.get('user_id')
+    
+    conexion = config.conectar_db()
+    if not conexion:
+        return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+    
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                DELETE FROM inscripciones 
+                WHERE id_alumno = %s AND id_sesion = %s
+            """, (id_alumno, id_sesion))
+            
+            conexion.commit()
+            
+            if cursor.rowcount > 0:
+                return jsonify({'success': True, 'message': 'Sesión eliminada de tu agenda'})
+            else:
+                return jsonify({'success': False, 'message': 'No estabas inscrito en esta sesión'})
+                
+    except Exception as e:
+        conexion.rollback()
+        print(f"Error al desinscribir: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conexion.close()
+
+
+@app.route('/alumno/agenda')
+def alumno_agenda():
+    """Pantalla de agenda personal del alumno"""
+    if not session.get('user_tipo') == 'alumno':
+        return redirect(url_for('login'))
+    
+    id_alumno = session.get('user_id')
+    nombre = session.get('user_nombre')
+    
+    conexion = config.conectar_db()
+    if not conexion:
+        flash('Error de conexión', 'error')
+        return redirect(url_for('alumno_dashboard'))
+    
+    # Obtener evento publicado (para mostrar nombre)
+    evento_nombre = None
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT nombre FROM evento 
+                WHERE publicado = TRUE AND activo = 1
+                ORDER BY fecha_publicacion DESC LIMIT 1
+            """)
+            evento = cursor.fetchone()
+            if evento:
+                evento_nombre = evento['nombre']
+    except Exception as e:
+        print(f"Error al obtener evento: {e}")
+    
+    # Obtener sesiones inscritas
+    sesiones_inscritas = []
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT 
+                    s.id_sesion, s.nombre_de_sesion, s.fecha, 
+                    s.hora_inicio, s.hora_fin, s.cupo_audiencia,
+                    s.nombre_ponente, s.apellido_paterno, s.apellido_materno,
+                    s.perfil_profesional, s.biografia,
+                    ts.nombre_sesion as tipo,
+                    e.nombre_escenario as escenario_nombre
+                FROM inscripciones i
+                JOIN sesion s ON i.id_sesion = s.id_sesion
+                JOIN tipo_sesion ts ON s.id_tipo_sesion = ts.id_tipo_sesion
+                JOIN escenarios e ON s.id_escenario = e.id_escenario
+                WHERE i.id_alumno = %s
+                ORDER BY s.fecha ASC, s.hora_inicio ASC
+            """, (id_alumno,))
+            sesiones_raw = cursor.fetchall()
+            
+            for sesion in sesiones_raw:
+                sesion_dict = dict(sesion)
+                
+                # Formatear fecha
+                if sesion_dict.get('fecha'):
+                    sesion_dict['fecha_display'] = sesion_dict['fecha'].strftime('%d/%m/%Y')
+                    sesion_dict['fecha_sort'] = sesion_dict['fecha'].strftime('%Y-%m-%d')
+                else:
+                    sesion_dict['fecha_display'] = 'Sin fecha'
+                    sesion_dict['fecha_sort'] = '9999-12-31'
+                
+                # Formatear horas
+                for campo in ('hora_inicio', 'hora_fin'):
+                    val = sesion_dict.get(campo)
+                    if val:
+                        if hasattr(val, 'strftime'):
+                            sesion_dict[campo] = val.strftime('%H:%M')
+                        elif hasattr(val, 'seconds'):
+                            h = val.seconds // 3600
+                            m = (val.seconds % 3600) // 60
+                            sesion_dict[campo] = f"{h:02d}:{m:02d}"
+                    else:
+                        sesion_dict[campo] = '--:--'
+                
+                # Nombre completo del ponente
+                nombre_parts = filter(None, [
+                    sesion_dict.get('nombre_ponente', ''),
+                    sesion_dict.get('apellido_paterno', ''),
+                    sesion_dict.get('apellido_materno', '')
+                ])
+                sesion_dict['ponente'] = ' '.join(nombre_parts).strip() or 'Ponente no asignado'
+                
+                # Iniciales
+                nombre = sesion_dict.get('nombre_ponente', '')
+                apellido = sesion_dict.get('apellido_paterno', '')
+                if nombre and apellido:
+                    sesion_dict['iniciales'] = (nombre[0] + apellido[0]).upper()
+                elif nombre:
+                    sesion_dict['iniciales'] = nombre[0].upper()
+                else:
+                    sesion_dict['iniciales'] = 'NA'
+                
+                sesiones_inscritas.append(sesion_dict)
+                
+    except Exception as e:
+        print(f"Error al obtener inscripciones: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        conexion.close()
+    
+    # Ordenar por fecha
+    sesiones_inscritas.sort(key=lambda x: x['fecha_sort'])
+    
+    sesiones_json = json.dumps(sesiones_inscritas, default=str, ensure_ascii=False)
+    
+    return render_template('alumno_agenda.html',
+                         sesiones_json=sesiones_json,
+                         nombre=nombre,
+                         evento_nombre=evento_nombre)
+
+
+def enviar_correo_inscripcion(email, nombre_alumno, nombre_sesion, fecha, hora_inicio, hora_fin, escenario):
+    """Envía correo de confirmación de inscripción"""
+    asunto = f"Confirmación de inscripción - {nombre_sesion}"
+    
+    fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
+    hora_inicio_str = hora_inicio.strftime('%H:%M') if hasattr(hora_inicio, 'strftime') else str(hora_inicio)
+    hora_fin_str = hora_fin.strftime('%H:%M') if hasattr(hora_fin, 'strftime') else str(hora_fin)
+    
+    cuerpo_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: #1a3a2a; color: white; padding: 20px; text-align: center; }}
+            .content {{ padding: 20px; background: #f5f5f5; }}
+            .info {{ background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }}
+            .footer {{ text-align: center; padding: 15px; font-size: 12px; color: #777; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>🎓 UES San José del Rincón</h2>
+                <p>Confirmación de inscripción</p>
+            </div>
+            <div class="content">
+                <h3>¡Hola, {nombre_alumno}!</h3>
+                <p>Te has inscrito exitosamente a la siguiente sesión:</p>
+                <div class="info">
+                    <p><strong>📚 Sesión:</strong> {nombre_sesion}</p>
+                    <p><strong>📅 Fecha:</strong> {fecha_str}</p>
+                    <p><strong>🕐 Horario:</strong> {hora_inicio_str} - {hora_fin_str}</p>
+                    <p><strong>📍 Escenario:</strong> {escenario}</p>
+                </div>
+                <p>Puedes consultar tu agenda personal en cualquier momento.</p>
+                <p>¡Te esperamos!</p>
+            </div>
+            <div class="footer">
+                <p>© 2026 UES San José del Rincón - Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return enviar_correo(email, asunto, cuerpo_html)
+
+@app.route('/alumno/inscripciones', methods=['GET'])
+def alumno_inscripciones():
+    """Obtener IDs de sesiones en las que está inscrito el alumno"""
+    if not session.get('user_tipo') == 'alumno':
+        return jsonify({'success': False, 'message': 'No autorizado'}), 401
+    
+    id_alumno = session.get('user_id')
+    
+    conexion = config.conectar_db()
+    if not conexion:
+        return jsonify({'success': False, 'message': 'Error de conexión'}), 500
+    
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT id_sesion FROM inscripciones WHERE id_alumno = %s
+            """, (id_alumno,))
+            resultados = cursor.fetchall()
+            
+            inscritas = [r['id_sesion'] for r in resultados]
+            return jsonify({'success': True, 'inscritas': inscritas})
+            
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        conexion.close()
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
