@@ -452,6 +452,63 @@ def nueva_sesion():
                 }), 400
             
             # ============================================
+            # <<< NUEVO: VALIDAR LÍMITE DE CUPO POR ESCENARIO >>>
+            # ============================================
+            limites_escenarios = {
+                1: 100,  # Aula magna
+                3: 100,  # Aula A
+            }
+            
+            if id_escenario and cupo_audiencia:
+                try:
+                    escenario_id_int = int(id_escenario)
+                    if escenario_id_int in limites_escenarios:
+                        limite = limites_escenarios[escenario_id_int]
+                        if int(cupo_audiencia) > limite:
+                            return jsonify({
+                                'success': False, 
+                                'message': f'❌ Este escenario tiene un límite máximo de {limite} personas'
+                            }), 400
+                except ValueError:
+                    return jsonify({
+                        'success': False, 
+                        'message': 'El valor del cupo no es válido'
+                    }), 400
+            
+            # ============================================
+            # <<< NUEVO: VALIDAR DISPONIBILIDAD DEL ESCENARIO >>>
+            # ============================================
+            with conexion.cursor() as cursor:
+                # Verificar si hay conflicto de horario y escenario
+                sql_verificar = """
+                    SELECT id_sesion, nombre_de_sesion, hora_inicio, hora_fin
+                    FROM sesion 
+                    WHERE id_escenario = %s 
+                    AND fecha = %s
+                    AND (
+                        (hora_inicio < %s AND hora_fin > %s) OR
+                        (hora_inicio BETWEEN %s AND %s) OR
+                        (hora_fin BETWEEN %s AND %s) OR
+                        (%s BETWEEN hora_inicio AND hora_fin)
+                    )
+                """
+                cursor.execute(sql_verificar, (
+                    id_escenario, 
+                    fecha, 
+                    hora_fin, hora_inicio,      # Para superposición parcial
+                    hora_inicio, hora_fin,       # Para hora_inicio dentro de otro
+                    hora_inicio, hora_fin,       # Para hora_fin dentro de otro
+                    hora_inicio                  # Para inicio dentro de otro horario
+                ))
+                
+                conflicto = cursor.fetchone()
+                if conflicto:
+                    return jsonify({
+                        'success': False, 
+                        'message': f'❌ El escenario NO está disponible en ese horario.\n\nYa existe una sesión de {conflicto["hora_inicio"]} a {conflicto["hora_fin"]}: "{conflicto["nombre_de_sesion"]}"\n\nPor favor selecciona otro horario o escenario.'
+                    }), 400
+            
+            # ============================================
             # PROCESAR CAMPOS ADICIONALES
             # ============================================
             
@@ -761,6 +818,69 @@ def admin_editar_sesion(id):
                 return redirect(url_for('admin_editar_sesion', id=id))
             
             # ============================================
+            # <<< NUEVO: VALIDAR LÍMITE DE CUPO POR ESCENARIO >>>
+            # ============================================
+            limites_escenarios = {
+                1: 100,  # Aula magna
+                3: 100,  # Aula A
+            }
+            
+            if id_escenario and cupo_audiencia:
+                try:
+                    escenario_id_int = int(id_escenario)
+                    if escenario_id_int in limites_escenarios:
+                        limite = limites_escenarios[escenario_id_int]
+                        if int(cupo_audiencia) > limite:
+                            mensaje_error = f'❌ Este escenario tiene un límite máximo de {limite} personas'
+                            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                                return jsonify({'success': False, 'message': mensaje_error}), 400
+                            flash(mensaje_error, 'error')
+                            return redirect(url_for('admin_editar_sesion', id=id))
+                except ValueError:
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return jsonify({'success': False, 'message': 'El valor del cupo no es válido'}), 400
+                    flash('El valor del cupo no es válido', 'error')
+                    return redirect(url_for('admin_editar_sesion', id=id))
+            
+            # ============================================
+            # <<< NUEVO: VALIDAR DISPONIBILIDAD DEL ESCENARIO (EXCLUYENDO SESIÓN ACTUAL) >>>
+            # ============================================
+            with conexion.cursor() as cursor:
+                # Verificar si hay conflicto de horario y escenario, excluyendo la sesión actual
+                sql_verificar = """
+                    SELECT id_sesion, nombre_de_sesion, hora_inicio, hora_fin
+                    FROM sesion 
+                    WHERE id_escenario = %s 
+                    AND fecha = %s
+                    AND id_sesion != %s
+                    AND (
+                        (hora_inicio < %s AND hora_fin > %s) OR
+                        (hora_inicio BETWEEN %s AND %s) OR
+                        (hora_fin BETWEEN %s AND %s) OR
+                        (%s BETWEEN hora_inicio AND hora_fin)
+                    )
+                """
+                cursor.execute(sql_verificar, (
+                    id_escenario, 
+                    fecha, 
+                    id,  # Excluir la sesión actual
+                    hora_fin, hora_inicio,
+                    hora_inicio, hora_fin,
+                    hora_inicio, hora_fin,
+                    hora_inicio
+                ))
+                
+                conflicto = cursor.fetchone()
+                if conflicto:
+                    mensaje_error = f'❌ El escenario NO está disponible en ese horario.\n\nYa existe una sesión de {conflicto["hora_inicio"]} a {conflicto["hora_fin"]}: "{conflicto["nombre_de_sesion"]}"\n\nPor favor selecciona otro horario o escenario.'
+                    
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return jsonify({'success': False, 'message': mensaje_error}), 400
+                    
+                    flash(mensaje_error, 'error')
+                    return redirect(url_for('admin_editar_sesion', id=id))
+            
+            # ============================================
             # FIN DE VALIDACIONES
             # ============================================
             
@@ -852,9 +972,6 @@ def admin_editar_sesion(id):
     # ============================================
     # MÉTODO GET - Cargar datos de la sesión
     # ============================================
-# ============================================
-# MÉTODO GET - Cargar datos de la sesión
-# ============================================
     try:
         with conexion.cursor() as cursor:
             cursor.execute("SELECT * FROM sesion WHERE id_sesion = %s", (id,))
@@ -915,7 +1032,7 @@ def admin_editar_sesion(id):
                         tipos_sesion=tipos_sesion,
                         escenarios=escenarios,
                         carreras=carreras,
-                        eventos=eventos)  # ← Pasar eventos al template
+                        eventos=eventos)
 
 @app.route('/admin/sesion/eliminar/<int:id>', methods=['POST'])
 def admin_eliminar_sesion(id):
@@ -1860,6 +1977,7 @@ def api_sesiones_por_evento(id_evento):
             if item.get("cupo_audiencia") is None:
                 item["cupo_audiencia"] = 0
             result.append(item)
+
 
         return jsonify(result)
     except Exception as e:

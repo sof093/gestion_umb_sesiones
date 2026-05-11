@@ -9,6 +9,79 @@
     <link rel="stylesheet" href="/static/css/base.css">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Estilos adicionales para disponibilidad */
+        .availability-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .availability-section h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.1rem;
+            color: #2d6e3e;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .availability-section h3 i {
+            font-size: 1.2rem;
+        }
+        
+        .availability-status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+            font-size: 0.9rem;
+        }
+        
+        .availability-status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .availability-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .availability-status.checking {
+            background-color: #e7e7e7;
+            color: #666;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-row-three {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row-three {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -64,7 +137,7 @@
 
             <!-- Sede -->
             <div class="form-group">
-                <label>Sede</label>
+                <label>Sede *</label>
                 <select name="sede" id="sede" required>
                     <option value="">Seleccione una sede</option>
                     <option value="Unidad de estudio superiores" {% if sesion.sede == 'Unidad de estudio superiores' %}selected{% endif %}>Universidad Mexiquense del Bicentenario</option>
@@ -72,22 +145,68 @@
                 </select>
                 <div class="error-message" id="error-sede"></div>
             </div>
-            
+
+            <!-- ============================================ -->
+            <!-- SECCIÓN DE DISPONIBILIDAD (AGRUPADA) -->
+            <!-- ============================================ -->
+            <div class="availability-section">
+                <h3>
+                    <i class="fas fa-clock"></i> 
+                    Verificar disponibilidad de escenario
+                </h3>
+                
+                <div class="form-row-three">
+                    <div class="form-group">
+                        <label>Fecha *</label>
+                        <input type="date" name="fecha" id="fecha" required value="{{ sesion.fecha_str or sesion.fecha }}">
+                        <div class="error-message" id="error-fecha"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Hora inicio *</label>
+                        <input type="time" name="hora_inicio" id="hora_inicio" required value="{{ sesion.hora_inicio_str or sesion.hora_inicio }}">
+                        <div class="error-message" id="error-hora_inicio"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Hora fin *</label>
+                        <input type="time" name="hora_fin" id="hora_fin" required value="{{ sesion.hora_fin_str or sesion.hora_fin }}">
+                        <div class="error-message" id="error-hora_fin"></div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Escenario *</label>
+                    <select name="id_escenario" id="id_escenario" required>
+                        <option value="">Seleccione un escenario</option>
+                        {% for escenario in escenarios %}
+                            <option value="{{ escenario.id_escenario }}" {% if escenario.id_escenario == sesion.id_escenario %}selected{% endif %}>{{ escenario.nombre_escenario }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="error-message" id="error-id_escenario"></div>
+                </div>
+                
+                <!-- Estado de disponibilidad -->
+                <div id="availabilityStatus" class="availability-status"></div>
+            </div>
+
+            <!-- Datos generales de la sesión -->
             <div class="form-group">
-                <label>Nombre de la sesión</label>
+                <label>Nombre de la sesión *</label>
                 <input type="text" name="nombre_de_sesion" id="nombre_de_sesion" required value="{{ sesion.nombre_de_sesion }}">
                 <div class="error-message" id="error-nombre_de_sesion"></div>
             </div>
 
+            <!-- Datos del ponente -->
             <div class="form-group">
-                <label>Nombre del ponente</label>
+                <label>Nombre del ponente *</label>
                 <input type="text" name="nombre_ponente" id="nombre_ponente" required value="{{ sesion.nombre_ponente }}">
                 <div class="error-message" id="error-nombre_ponente"></div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Apellido Paterno</label>
+                    <label>Apellido Paterno *</label>
                     <input type="text" name="apellido_paterno" id="apellido_paterno" required value="{{ sesion.apellido_paterno }}">
                     <div class="error-message" id="error-apellido_paterno"></div>
                 </div>
@@ -100,7 +219,7 @@
 
             <!-- Procedencia -->
             <div class="form-group">
-                <label>¿Proviene de una institución o es independiente?</label>
+                <label>¿Proviene de una institución o es independiente? *</label>
                 <div class="radio-group">
                     <label>
                         <input type="radio" name="tipo_procedencia" value="institucion" {% if sesion.procedencia_institucion_independiente %}checked{% endif %}> Institución
@@ -113,14 +232,14 @@
             </div>
 
             <div id="campo_institucion" class="form-group" {% if not sesion.procedencia_institucion_independiente %}style="display: none;"{% endif %}>
-                <label>Nombre de la institución</label>
+                <label>Nombre de la institución *</label>
                 <input type="text" name="procedencia_institucion_independiente" id="nombre_institucion" value="{{ sesion.procedencia_institucion_independiente or '' }}">
                 <div class="error-message" id="error-nombre_institucion"></div>
             </div>
 
             <!-- Materiales -->
             <div class="form-group">
-                <label>¿Requiere materiales para la sesión?</label>
+                <label>¿Requiere materiales para la sesión? *</label>
                 <div class="radio-group">
                     <label>
                         <input type="radio" name="requiere_materiales" value="si" {% if sesion.descripcion_materiales %}checked{% endif %}> Sí
@@ -133,52 +252,24 @@
             </div>
 
             <div id="campo_materiales" class="form-group" {% if not sesion.descripcion_materiales %}style="display: none;"{% endif %}>
-                <label>Describe los materiales necesarios</label>
+                <label>Describe los materiales necesarios *</label>
                 <textarea name="descripcion_materiales" id="descripcion_materiales" rows="2">{{ sesion.descripcion_materiales or '' }}</textarea>
-                <div class="error-message" id="error-descripcion_materiales">La descripción de materiales es requerida</div>
+                <div class="error-message" id="error-descripcion_materiales"></div>
             </div>
 
+            <!-- Tipo de sesión -->
             <div class="form-group">
-                <label>Fecha</label>
-                <input type="date" name="fecha" id="fecha" required value="{{ sesion.fecha_str or sesion.fecha }}">
-                <div class="error-message" id="error-fecha">La fecha no puede ser anterior al día de hoy</div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Hora inicio</label>
-                    <input type="time" name="hora_inicio" id="hora_inicio" required value="{{ sesion.hora_inicio_str or sesion.hora_inicio }}">
-                    <div class="error-message" id="error-hora_inicio"></div>
-                </div>
-                <div class="form-group">
-                    <label>Hora fin</label>
-                    <input type="time" name="hora_fin" id="hora_fin" required value="{{ sesion.hora_fin_str or sesion.hora_fin }}">
-                    <div class="error-message" id="error-hora_fin"></div>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Tipo de sesión</label>
+                <label>Tipo de sesión *</label>
                 <select name="id_tipo_sesion" id="id_tipo_sesion" required>
                     <option value="">Seleccione un tipo</option>
                     {% for tipo in tipos_sesion %}
                         <option value="{{ tipo.id_tipo_sesion }}" {% if tipo.id_tipo_sesion == sesion.id_tipo_sesion %}selected{% endif %}>{{ tipo.nombre_sesion }}</option>
                     {% endfor %}
                 </select>
-                <div class="error-message" id="error-id_tipo_sesion">Seleccione un tipo de sesión</div>
+                <div class="error-message" id="error-id_tipo_sesion"></div>
             </div>
 
-            <div class="form-group">
-                <label>Escenario</label>
-                <select name="id_escenario" id="id_escenario" required>
-                    <option value="">Seleccione un escenario</option>
-                    {% for escenario in escenarios %}
-                        <option value="{{ escenario.id_escenario }}" {% if escenario.id_escenario == sesion.id_escenario %}selected{% endif %}>{{ escenario.nombre_escenario }}</option>
-                    {% endfor %}
-                </select>
-                <div class="error-message" id="error-id_escenario">Seleccione un escenario</div>
-            </div>
-
+            <!-- Carrera asociada -->
             <div class="form-group">
                 <label>Carrera asociada</label>
                 <select name="id_carrera" id="id_carrera">
@@ -189,38 +280,43 @@
                 </select>
             </div>
 
+            <!-- Cupo -->
             <div class="form-group">
                 <label>Cupo máximo</label>
                 <input type="number" name="cupo_audiencia" id="cupo_audiencia" value="{{ sesion.cupo_audiencia or 50 }}">
                 <div class="error-message" id="error-cupo_audiencia"></div>
             </div>
 
+            <!-- Perfil profesional -->
             <div class="form-group">
                 <label>Perfil profesional</label>
                 <textarea name="perfil_profesional" id="perfil_profesional" rows="2">{{ sesion.perfil_profesional or '' }}</textarea>
             </div>
 
+            <!-- Biografía -->
             <div class="form-group">
                 <label>Biografía</label>
                 <textarea name="biografia" id="biografia" rows="3">{{ sesion.biografia or '' }}</textarea>
             </div>
 
+            <!-- Fotografía -->
             <div class="form-group">
                 <label>Fotografía del ponente</label>
                 <input type="file" name="fotografia" id="fotografia" accept="image/*">
                 <small>Formatos: JPG, PNG, GIF (max 16MB)</small>
                 {% if sesion.fotografia %}
-                    <small>Archivo actual: {{ sesion.fotografia.split('/')[-1] }}</small>
+                    <br><small>Archivo actual: {{ sesion.fotografia.split('/')[-1] }}</small>
                 {% endif %}
                 <div class="error-message" id="error-fotografia"></div>
             </div>
 
+            <!-- Logo institucional -->
             <div id="campo_logo" class="form-group" {% if not sesion.procedencia_institucion_independiente %}style="display: none;"{% endif %}>
                 <label>Logo institucional (opcional)</label>
                 <input type="file" name="logo" id="logo" accept="image/*">
                 <small>Logo de la institución</small>
                 {% if sesion.logo %}
-                    <small>Archivo actual: {{ sesion.logo.split('/')[-1] }}</small>
+                    <br><small>Archivo actual: {{ sesion.logo.split('/')[-1] }}</small>
                 {% endif %}
                 <div class="error-message" id="error-logo"></div>
             </div>
@@ -242,5 +338,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="/static/js/global.js"></script>
 <script src="/static/js/admin_nueva_editar_sesion.js"></script>
+
 </body>
 </html>

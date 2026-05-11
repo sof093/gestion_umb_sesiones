@@ -443,3 +443,42 @@ select option {
     box-sizing: border-box;
 }
 
+#mensaje-disponibilidad {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+/* Eliminar completamente la validación nativa del navegador */
+input:invalid, 
+select:invalid, 
+textarea:invalid {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Eliminar el borde rojo por defecto de inputs inválidos */
+input:invalid:not(:placeholder-shown) {
+    border-color: #c8d9cc; /* color normal */
+}
+
+/* Deshabilitar la validación nativa de HTML5 */
+input::-webkit-validation-bubble,
+input::-webkit-validation-bubble-message,
+input::-webkit-validation-bubble-arrow,
+input::-webkit-validation-bubble-arrow-clipper {
+    display: none !important;
+}
+
+/* Para Firefox */
+input:invalid {
+    box-shadow: none;
+}

@@ -2,6 +2,165 @@
 let formModified = false;
 let formSubmitted = false;
 
+// ============================================
+// DEFINIR LÍMITES POR ESCENARIO (AL PRINCIPIO)
+// ============================================
+const limitesPorEscenario = {
+    1: 100,  // Aula magna
+    3: 25,// Aula A
+    2: 20,// 2: 80,   // Laboratorio de cómputo (sin límite, no lo incluyas)
+    // 4: 200,  // Plazoleta institucional (sin límite)
+    // 5: 500   // Áreas verdes (sin límite)
+};
+
+// ============================================
+// NUEVAS FUNCIONES PARA VERIFICAR DISPONIBILIDAD
+// ============================================
+
+// Variable para evitar múltiples verificaciones
+let verificandoDisponibilidad = false;
+let timeoutVerificacion = null;
+
+// Función para mostrar mensaje de disponibilidad
+function mostrarMensajeDisponibilidad(tipo, mensaje) {
+    // Eliminar mensaje anterior si existe
+    eliminarMensajeDisponibilidad();
+    
+    // Crear contenedor de mensaje si no existe
+    let mensajeDiv = document.getElementById('mensaje-disponibilidad');
+    if (!mensajeDiv) {
+        mensajeDiv = document.createElement('div');
+        mensajeDiv.id = 'mensaje-disponibilidad';
+        mensajeDiv.style.marginTop = '10px';
+        mensajeDiv.style.padding = '10px';
+        mensajeDiv.style.borderRadius = '5px';
+        mensajeDiv.style.fontSize = '14px';
+        
+        // Insertar después del campo escenario
+        const escenarioField = document.getElementById('id_escenario').closest('.form-group');
+        if (escenarioField && escenarioField.parentNode) {
+            escenarioField.parentNode.insertBefore(mensajeDiv, escenarioField.nextSibling);
+        }
+    }
+    
+    mensajeDiv.style.display = 'block';
+    
+    if (tipo === 'success') {
+        mensajeDiv.style.backgroundColor = '#d4edda';
+        mensajeDiv.style.color = '#155724';
+        mensajeDiv.style.border = '1px solid #c3e6cb';
+    } else {
+        mensajeDiv.style.backgroundColor = '#f8d7da';
+        mensajeDiv.style.color = '#721c24';
+        mensajeDiv.style.border = '1px solid #f5c6cb';
+    }
+    
+    mensajeDiv.innerHTML = mensaje;
+    
+    // Si es error, también marcar los campos
+    if (tipo === 'error') {
+        const escenarioField = document.getElementById('id_escenario');
+        const horaInicioField = document.getElementById('hora_inicio');
+        const horaFinField = document.getElementById('hora_fin');
+        
+        if (escenarioField) escenarioField.style.borderColor = '#dc3545';
+        if (horaInicioField) horaInicioField.style.borderColor = '#dc3545';
+        if (horaFinField) horaFinField.style.borderColor = '#dc3545';
+    } else {
+        const escenarioField = document.getElementById('id_escenario');
+        const horaInicioField = document.getElementById('hora_inicio');
+        const horaFinField = document.getElementById('hora_fin');
+        
+        if (escenarioField) escenarioField.style.borderColor = '';
+        if (horaInicioField) horaInicioField.style.borderColor = '';
+        if (horaFinField) horaFinField.style.borderColor = '';
+    }
+}
+
+// Función para eliminar mensaje de disponibilidad
+function eliminarMensajeDisponibilidad() {
+    const mensajeDiv = document.getElementById('mensaje-disponibilidad');
+    if (mensajeDiv) {
+        mensajeDiv.style.display = 'none';
+    }
+}
+
+// Función para verificar disponibilidad del escenario
+async function verificarDisponibilidadEscenario() {
+    // Evitar verificar si ya hay una verificación en curso
+    if (verificandoDisponibilidad) return;
+    
+    const idEscenario = document.getElementById('id_escenario').value;
+    const fecha = document.getElementById('fecha').value;
+    const horaInicio = document.getElementById('hora_inicio').value;
+    const horaFin = document.getElementById('hora_fin').value;
+    const esEdicion = window.location.pathname.includes('/editar/');
+    
+    // Solo verificar si todos los campos están llenos
+    if (!idEscenario || !fecha || !horaInicio || !horaFin) {
+        eliminarMensajeDisponibilidad();
+        return;
+    }
+    
+    // Validar que hora_fin > hora_inicio
+    if (horaAMinutos(horaInicio) >= horaAMinutos(horaFin)) {
+        mostrarMensajeDisponibilidad('error', 'La hora de fin debe ser posterior a la hora de inicio');
+        return;
+    }
+    
+    verificandoDisponibilidad = true;
+    
+    try {
+        let url = '/admin/verificar_disponibilidad';
+        let idSesion = null;
+        
+        if (esEdicion) {
+            idSesion = window.location.pathname.split('/').pop();
+        }
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id_escenario: idEscenario,
+                fecha: fecha,
+                hora_inicio: horaInicio,
+                hora_fin: horaFin,
+                id_sesion: idSesion
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.disponible) {
+            mostrarMensajeDisponibilidad('success', '✓ Escenario disponible para este horario');
+        } else {
+            mostrarMensajeDisponibilidad('error', data.mensaje);
+        }
+    } catch (error) {
+        console.error('Error al verificar disponibilidad:', error);
+        mostrarMensajeDisponibilidad('error', 'Error al verificar disponibilidad');
+    } finally {
+        verificandoDisponibilidad = false;
+    }
+}
+
+// Función para verificar disponibilidad con debounce
+function verificarConDebounce() {
+    if (timeoutVerificacion) {
+        clearTimeout(timeoutVerificacion);
+    }
+    timeoutVerificacion = setTimeout(() => {
+        verificarDisponibilidadEscenario();
+    }, 500);
+}
+
+// ============================================
+// FUNCIONES BASE
+// ============================================
+
 // Función para convertir hora HH:MM a minutos
 function horaAMinutos(horaStr) {
     if (!horaStr) return 0;
@@ -84,7 +243,135 @@ function validarHorasEnTiempoReal() {
     return true;
 }
 
-// Validar formulario completo
+// ============================================
+// FUNCIÓN PARA LIMITAR CUPO SEGÚN ESCENARIO
+// ============================================
+function actualizarLimiteCupoPorEscenario() {
+    const escenarioSelect = document.getElementById('id_escenario');
+    const cupoInput = document.getElementById('cupo_audiencia');
+    
+    if (!escenarioSelect || !cupoInput) return;
+    
+    const escenarioId = escenarioSelect.value;
+    const limite = limitesPorEscenario[escenarioId];
+    const nombreEscenario = escenarioSelect.options[escenarioSelect.selectedIndex]?.text;
+    
+    // 🔥 ELIMINAR EL ATRIBUTO MAX completamente
+    cupoInput.removeAttribute('max');
+    
+    // Remover mensaje de ayuda anterior si existe
+    const ayudaExistente = document.getElementById('ayuda-limite-cupo');
+    if (ayudaExistente) ayudaExistente.remove();
+    
+    if (limite) {
+        // 🔥 NO USAR cupoInput.max = limite
+        // Solo guardar el límite en un atributo personalizado
+        cupoInput.setAttribute('data-limite', limite);
+        cupoInput.placeholder = `Máximo ${limite} personas (${nombreEscenario})`;
+        
+        // Si el valor actual supera el límite, mostrar SweetAlert y ajustar
+        let valorActual = parseInt(cupoInput.value);
+        if (valorActual > limite) {
+            cupoInput.value = limite;
+            
+            Swal.fire({
+                title: 'Límite aplicado automáticamente',
+                html: `<div style="text-align: left;">
+                           <p><strong>📌 El escenario "${nombreEscenario}" tiene un límite de ${limite} personas.</strong></p>
+                           <p>El cupo ha sido ajustado automáticamente a <strong>${limite}</strong> personas.</p>
+                           <p>Puedes modificarlo, pero no podrá superar este límite.</p>
+                       </div>`,
+                icon: 'info',
+                confirmButtonColor: '#2d6e3e',
+                confirmButtonText: 'Entendido',
+                timer: 3000,
+                timerProgressBar: true
+            });
+        }
+        
+        // Limpiar cualquier error visual previo
+        cupoInput.style.borderColor = '';
+        const errorDiv = document.getElementById('error-cupo_audiencia');
+        if (errorDiv) errorDiv.style.display = 'none';
+        
+        // Agregar mensaje de ayuda
+        const ayuda = document.createElement('small');
+        ayuda.id = 'ayuda-limite-cupo';
+        ayuda.style.display = 'block';
+        ayuda.style.color = '#2d6e3e';
+        ayuda.style.marginTop = '5px';
+        ayuda.style.fontSize = '12px';
+        ayuda.innerHTML = `<i class="fas fa-info-circle"></i> Este escenario tiene un límite máximo de ${limite} personas`;
+        cupoInput.parentNode.appendChild(ayuda);
+        
+    } else {
+        // Sin límite
+        cupoInput.removeAttribute('data-limite');
+        cupoInput.placeholder = "Número de personas (sin límite específico)";
+        cupoInput.style.borderColor = '';
+        
+        if (nombreEscenario && (nombreEscenario.includes('Plazoleta') || nombreEscenario.includes('Áreas'))) {
+            const ayuda = document.createElement('small');
+            ayuda.id = 'ayuda-limite-cupo';
+            ayuda.style.display = 'block';
+            ayuda.style.color = '#7a9a82';
+            ayuda.style.marginTop = '5px';
+            ayuda.style.fontSize = '12px';
+            ayuda.innerHTML = `<i class="fas fa-info-circle"></i> Espacio abierto, capacidad flexible`;
+            cupoInput.parentNode.appendChild(ayuda);
+        }
+    }
+}
+// Validación adicional en el formulario para el límite (VERSIÓN CON SWEETALERT)
+function validarLimiteCupoEnvio() {
+    const escenarioSelect = document.getElementById('id_escenario');
+    const cupoInput = document.getElementById('cupo_audiencia');
+    
+    if (!escenarioSelect || !cupoInput) return true;
+    
+    // Usar el atributo personalizado en lugar de max
+    const limite = parseInt(cupoInput.getAttribute('data-limite'));
+    const valorCupo = parseInt(cupoInput.value);
+    const nombreEscenario = escenarioSelect.options[escenarioSelect.selectedIndex]?.text;
+    
+    if (limite && !isNaN(valorCupo) && valorCupo > limite) {
+        Swal.fire({
+            title: '❌ Límite de cupo excedido',
+            html: `<div style="text-align: left;">
+                       <p><strong>No se puede guardar la sesión</strong></p>
+                       <hr>
+                       <p>📌 <strong>Escenario:</strong> ${nombreEscenario}</p>
+                       <p>📌 <strong>Límite máximo:</strong> ${limite} personas</p>
+                       <p>📌 <strong>Cupo ingresado:</strong> ${valorCupo} personas</p>
+                       <hr>
+                       <p>✏️ Por favor, ajusta el cupo a ${limite} o menos personas para continuar.</p>
+                   </div>`,
+            icon: 'error',
+            confirmButtonColor: '#2d6e3e',
+            confirmButtonText: 'Entendido, lo ajustaré'
+        });
+        
+        // Marcar el campo como error visualmente
+        cupoInput.style.borderColor = '#dc3545';
+        const errorDiv = document.getElementById('error-cupo_audiencia');
+        if (errorDiv) {
+            errorDiv.textContent = `El cupo no puede exceder ${limite} personas`;
+            errorDiv.style.display = 'block';
+        }
+        
+        return false;
+    }
+    
+    // Limpiar errores si está bien
+    cupoInput.style.borderColor = '';
+    const errorDiv = document.getElementById('error-cupo_audiencia');
+    if (errorDiv) errorDiv.style.display = 'none';
+    
+    return true;
+}
+// ============================================
+// VALIDACIÓN PRINCIPAL
+// ============================================
 function validarFormularioConLista() {
     let errores = [];
     
@@ -167,7 +454,7 @@ function validarFormularioConLista() {
         }
     }
     
-    // ✅ VALIDACIÓN DE HORAS (UN SOLO BLOQUE, CORRECTO)
+    // Validación de horas
     const horaInicio = document.getElementById('hora_inicio');
     const horaFin = document.getElementById('hora_fin');
     
@@ -182,8 +469,6 @@ function validarFormularioConLista() {
     if (horaInicio.value && horaFin.value) {
         const minutosInicio = horaAMinutos(horaInicio.value);
         const minutosFin = horaAMinutos(horaFin.value);
-        
-        console.log("Validando horas:", horaInicio.value, "→", minutosInicio, "vs", horaFin.value, "→", minutosFin);
         
         if (minutosInicio >= minutosFin) {
             mostrarError('hora_fin', 'La hora de fin debe ser posterior a la hora de inicio');
@@ -205,13 +490,22 @@ function validarFormularioConLista() {
         errores.push('Debe seleccionar un escenario');
     }
     
-    // Validar cupo
+    // Validar cupo (solo una vez)
     const cupo = document.getElementById('cupo_audiencia');
     if (cupo.value && !esNumeroPositivo(cupo.value)) {
         mostrarError('cupo_audiencia', 'Ingrese un número válido (mayor a 0)');
         errores.push('El cupo debe ser un número mayor a 0');
     }
-    
+    /*
+    // Validar límite de cupo por escenario
+    const escenarioId = document.getElementById('id_escenario').value;
+    const limite = limitesPorEscenario[escenarioId];
+    if (cupo.value && limite && parseInt(cupo.value) > limite) {
+        const nombreEscenario = document.getElementById('id_escenario').options[document.getElementById('id_escenario').selectedIndex]?.text;
+        mostrarError('cupo_audiencia', `El ${nombreEscenario} tiene un límite máximo de ${limite} personas`);
+        errores.push(`El cupo no puede exceder ${limite} personas para este escenario`);
+    }
+    */
     // Validar fotografía
     const fotografia = document.getElementById('fotografia');
     if (fotografia.files.length > 0 && !esImagenValida(fotografia.files[0])) {
@@ -226,7 +520,14 @@ function validarFormularioConLista() {
         errores.push('El logo debe ser una imagen válida (JPG, PNG, GIF)');
     }
     
-    console.log("Total errores encontrados:", errores.length);
+    // Verificar disponibilidad del escenario
+    const mensajeDisponibilidad = document.getElementById('mensaje-disponibilidad');
+    if (mensajeDisponibilidad && mensajeDisponibilidad.style.display !== 'none' && 
+        mensajeDisponibilidad.innerHTML.includes('NO está disponible')) {
+        errores.push('❌ El escenario no está disponible en el horario seleccionado');
+        mostrarError('id_escenario', 'Escenario ocupado en este horario');
+    }
+    
     return errores;
 }
 
@@ -355,7 +656,7 @@ function initValidacionesTiempoReal() {
         }
     });
     
-    // ✅ VALIDACIÓN DE HORAS EN TIEMPO REAL (CORREGIDA)
+    // Validación de horas en tiempo real + disponibilidad
     const horaInicio = document.getElementById('hora_inicio');
     const horaFin = document.getElementById('hora_fin');
     
@@ -363,21 +664,49 @@ function initValidacionesTiempoReal() {
         horaInicio.addEventListener('change', () => {
             formModified = true;
             validarHorasEnTiempoReal();
+            verificarConDebounce();
         });
         horaInicio.addEventListener('input', () => {
             formModified = true;
             validarHorasEnTiempoReal();
+            verificarConDebounce();
         });
     }
     if (horaFin) {
         horaFin.addEventListener('change', () => {
             formModified = true;
             validarHorasEnTiempoReal();
+            verificarConDebounce();
         });
         horaFin.addEventListener('input', () => {
             formModified = true;
             validarHorasEnTiempoReal();
+            verificarConDebounce();
         });
+    }
+    
+    // Verificar disponibilidad del escenario
+    const idEscenario = document.getElementById('id_escenario');
+    const fecha = document.getElementById('fecha');
+    
+    const camposDisponibilidad = [idEscenario, fecha, horaInicio, horaFin];
+    
+    camposDisponibilidad.forEach(campo => {
+        if (campo) {
+            campo.addEventListener('change', verificarConDebounce);
+            campo.addEventListener('input', verificarConDebounce);
+        }
+    });
+    
+    // Actualizar límite de cupo cuando cambie el escenario
+    const escenarioSelect = document.getElementById('id_escenario');
+    if (escenarioSelect) {
+        escenarioSelect.addEventListener('change', function() {
+            formModified = true;
+            actualizarLimiteCupoPorEscenario();
+        });
+        // Ejecutar una vez al cargar
+        actualizarLimiteCupoPorEscenario();
     }
 }
 
@@ -387,18 +716,21 @@ function initFormSubmit() {
     const form = document.getElementById('sesionForm');
     if (!form) return;
     
-    // Detectar si es edición (presencia de ID en la URL)
     const esEdicion = window.location.pathname.includes('/editar/');
     let url = '/admin/sesion/nueva';
     
     if (esEdicion) {
-        // Extraer el ID de la URL: /admin/sesion/editar/5
         const id = window.location.pathname.split('/').pop();
         url = `/admin/sesion/editar/${id}`;
     }
     
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
+        
+        // Validar límite de cupo - SOLO ESTA LLAMADA (ya tiene su propio SweetAlert)
+        if (!validarLimiteCupoEnvio()) {
+            return; // La función ya muestra su propio SweetAlert, solo detenemos el envío
+        }
         
         const errores = validarFormularioConLista();
         
@@ -484,7 +816,6 @@ function initFormSubmit() {
         }
     });
 }
-
 // Configurar botones de cancelar/volver
 function initCancelButtons() {
     const btnCancelar = document.getElementById('btnCancelar');

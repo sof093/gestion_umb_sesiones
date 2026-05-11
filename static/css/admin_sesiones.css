@@ -552,3 +552,338 @@ tbody td {
     thead th:nth-child(3), thead th:nth-child(4),
     tbody td:nth-child(3), tbody td:nth-child(4) { display: none; }
 }
+
+/* Versión alternativa - mantiene todos los textos */
+@media (max-width: 550px) {
+    /* Botones más compactos */
+    .btn-evento {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
+    
+    .view-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
+    
+    .cal-export-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
+    
+    /* Select más pequeño */
+    .evento-select {
+        font-size: 0.8rem;
+        padding: 0.4rem 1.8rem 0.4rem 0.6rem;
+    }
+}
+/* ============================================
+   ESTILOS PARA BARRA DE EVENTOS Y CALENDARIO
+   ============================================ */
+
+/* Barra de eventos */
+.evento-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    background: var(--blanco);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.evento-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.evento-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--verde-claro);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--verde-oscuro);
+    font-size: 1.2rem;
+}
+
+.evento-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--texto-medio);
+    margin-bottom: 0.2rem;
+}
+
+.evento-select {
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    border: 1.5px solid #c8d9cc;
+    border-radius: 8px;
+    background: var(--gris-fondo);
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 500;
+    min-width: 200px;
+}
+
+.evento-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.btn-evento {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--gris-fondo);
+    color: var(--texto-oscuro);
+}
+
+.btn-evento:hover {
+    transform: translateY(-2px);
+    filter: brightness(0.95);
+}
+
+.evento-meta {
+    font-size: 0.8rem;
+    color: var(--texto-medio);
+    padding: 0.3rem 0.8rem;
+    background: var(--gris-fondo);
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 0.3rem;
+    background: var(--gris-fondo);
+    padding: 0.2rem;
+    border-radius: 10px;
+}
+
+.view-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.view-btn.active {
+    background: var(--verde-oscuro);
+    color: white;
+}
+
+/* Encabezado del calendario */
+.cal-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+.cal-nav {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cal-nav-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1.5px solid #c8d9cc;
+    background: var(--blanco);
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+}
+
+.cal-nav-btn:hover {
+    background: var(--verde-oscuro);
+    color: white;
+    border-color: var(--verde-oscuro);
+}
+
+.cal-title-wrap {
+    text-align: center;
+}
+
+.cal-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--verde-oscuro);
+}
+
+.cal-subtitle {
+    font-size: 0.85rem;
+    color: var(--texto-medio);
+    margin-left: 0.5rem;
+}
+
+.cal-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.cal-export-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cal-export-btn:first-child {
+    background: #e74c3c;
+    color: white;
+}
+
+.cal-export-btn:nth-child(2) {
+    background: #27ae60;
+    color: white;
+}
+
+.cal-export-btn:last-child {
+    background: #3498db;
+    color: white;
+}
+
+.cal-export-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(0.9);
+}
+
+/* ============================================
+   MEDIA QUERIES PARA RESPONSIVE
+   ============================================ */
+
+/* Tablets (menos de 900px) */
+@media (max-width: 900px) {
+    .evento-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .evento-bar-right {
+        justify-content: flex-start;
+    }
+}
+
+/* Móviles (menos de 650px) */
+@media (max-width: 650px) {
+    .evento-bar-left {
+        justify-content: space-between;
+    }
+    
+    .evento-select {
+        min-width: auto;
+        flex: 1;
+    }
+    
+    .evento-bar-right {
+        flex-wrap: wrap;
+    }
+    
+    .btn-evento {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .cal-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .cal-nav {
+        order: 2;
+        justify-content: center;
+    }
+    
+    .cal-title-wrap {
+        order: 1;
+    }
+    
+    .cal-actions {
+        order: 3;
+        justify-content: center;
+    }
+}
+
+/* Móviles pequeños (menos de 480px) */
+@media (max-width: 480px) {
+    .evento-bar {
+        padding: 1rem;
+    }
+    
+    .evento-bar-left {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .evento-icon {
+        display: none;
+    }
+    
+    .btn-evento {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    .view-btn span,
+    .cal-export-btn span {
+        display: none;
+    }
+    
+    .view-btn i,
+    .cal-export-btn i {
+        margin: 0;
+        font-size: 1rem;
+    }
+    
+    .view-btn {
+        padding: 0.4rem 0.6rem;
+    }
+    
+    .cal-export-btn {
+        padding: 0.4rem 0.6rem;
+    }
+    
+    .cal-title {
+        font-size: 1rem;
+    }
+    
+    .cal-subtitle {
+        display: block;
+        margin-left: 0;
+        margin-top: 0.3rem;
+    }
+}
