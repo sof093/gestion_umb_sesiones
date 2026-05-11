@@ -783,7 +783,7 @@ tbody td {
 }
 
 /* ============================================
-   MEDIA QUERIES PARA RESPONSIVE
+   MEDIA QUERIES PARA RESPONSIVE - VERSIÓN CORREGIDA
    ============================================ */
 
 /* Tablets (menos de 900px) */
@@ -795,12 +795,18 @@ tbody td {
     
     .evento-bar-right {
         justify-content: flex-start;
+        flex-wrap: wrap;
     }
 }
 
 /* Móviles (menos de 650px) */
 @media (max-width: 650px) {
+    .evento-bar {
+        padding: 1rem;
+    }
+    
     .evento-bar-left {
+        width: 100%;
         justify-content: space-between;
     }
     
@@ -809,18 +815,61 @@ tbody td {
         flex: 1;
     }
     
-    .evento-bar-right {
-        flex-wrap: wrap;
+    /* Ocultar el icono del calendario en móvil para ahorrar espacio */
+    .evento-icon {
+        display: none;
     }
     
+    /* Hacer que toda la barra derecha sea flexible */
+    .evento-bar-right {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    
+    /* Botones ocupan todo el ancho */
     .btn-evento {
-        flex: 1;
+        width: 100%;
+        justify-content: center;
+        padding: 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    /* META INFO - CORREGIDO */
+    .evento-meta {
+            white-space: nowrap !important;
+            overflow-x: auto !important;
+            display: block !important;
+            width: 100%;
+            text-align: center;
+            font-size: 0.7rem;
+            padding: 0.4rem 0.5rem;
+            background: var(--gris-fondo);
+            border-radius: 20px;
+            color: var(--texto-medio);
+            box-sizing: border-box;
+            scrollbar-width: thin;
+        }
+    
+    /* Toggle de vista ocupa todo el ancho */
+    .view-toggle {
+        width: 100%;
         justify-content: center;
     }
     
+    .view-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Encabezado del calendario en móvil */
     .cal-header {
         flex-direction: column;
         align-items: stretch;
+        gap: 0.8rem;
     }
     
     .cal-nav {
@@ -830,34 +879,57 @@ tbody td {
     
     .cal-title-wrap {
         order: 1;
+        text-align: center;
     }
     
     .cal-actions {
         order: 3;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .cal-export-btn {
+        width: 100%;
         justify-content: center;
+        padding: 0.6rem;
     }
 }
 
-/* Móviles pequeños (menos de 480px) */
+/* Móviles pequeños (menos de 480px) - versión ultra compacta */
 @media (max-width: 480px) {
     .evento-bar {
-        padding: 1rem;
+        padding: 0.8rem;
     }
     
-    .evento-bar-left {
-        flex-direction: column;
-        align-items: stretch;
+    .evento-label {
+        font-size: 0.6rem;
     }
     
-    .evento-icon {
-        display: none;
+    .evento-select {
+        font-size: 0.75rem;
+        padding: 0.4rem 1.5rem 0.4rem 0.6rem;
     }
     
     .btn-evento {
-        font-size: 0.75rem;
-        padding: 0.4rem 0.6rem;
+        padding: 0.5rem;
+        font-size: 0.7rem;
     }
     
+    .btn-evento i {
+        font-size: 0.8rem;
+    }
+    
+    .evento-meta {
+        font-size: 0.65rem;
+        padding: 0.4rem;
+    }
+    
+    .view-btn {
+        padding: 0.5rem;
+        font-size: 0.7rem;
+    }
+    
+    /* Ocultar texto de los botones, mostrar solo íconos */
     .view-btn span,
     .cal-export-btn span {
         display: none;
@@ -866,24 +938,27 @@ tbody td {
     .view-btn i,
     .cal-export-btn i {
         margin: 0;
-        font-size: 1rem;
-    }
-    
-    .view-btn {
-        padding: 0.4rem 0.6rem;
-    }
-    
-    .cal-export-btn {
-        padding: 0.4rem 0.6rem;
+        font-size: 1.1rem;
     }
     
     .cal-title {
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
     
     .cal-subtitle {
         display: block;
         margin-left: 0;
-        margin-top: 0.3rem;
+        margin-top: 0.2rem;
+        font-size: 0.7rem;
+    }
+    
+    .cal-nav-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+    
+    .cal-export-btn {
+        padding: 0.5rem;
     }
 }
