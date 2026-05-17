@@ -19,15 +19,53 @@ import json
 # ==================== CONFIGURACIÓN DE CORREO ====================
 app = config.app
 
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Para Gmail
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'  
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'administradorsesionesumb@gmail.com'  # CAMBIA ESTO
-app.config['MAIL_PASSWORD'] = 'qaun eayw roid ebrp'  # CAMBIA ESTO
+app.config['MAIL_USERNAME'] = 'administradorsesionesumb@gmail.com'  
+app.config['MAIL_PASSWORD'] = 'qaun eayw roid ebrp' 
 app.config['MAIL_DEFAULT_SENDER'] = 'administradorsesionesumb@gmail.com'
 
 mail = Mail(app)
+@app.after_request
+def add_security_headers(response):
+    """Agregar headers de seguridad EXTREMOS para evitar caché"""
+    # Para TODAS las rutas
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private, max-age=0, post-check=0, pre-check=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    # Para páginas protegidas, headers adicionales
+    if request.endpoint and ('admin' in request.endpoint or 'alumno' in request.endpoint):
+        response.headers['Clear-Site-Data'] = '"cache"'
+    
+    return response
 
+@app.route('/check-session')
+def check_session():
+    """Verificar si la sesión está activa (para el frontend)"""
+    # Headers anti-caché para esta respuesta también
+    response = jsonify({'authenticated': False})
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    print(f"DEBUG /check-session - Session content: {dict(session)}")
+    
+    if session.get('user_id') and session.get('user_tipo'):
+        response = jsonify({
+            'authenticated': True, 
+            'user_id': session['user_id'],
+            'user_tipo': session['user_tipo'],
+            'user_nombre': session.get('user_nombre', '')
+        })
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+    else:
+        print("No hay sesión activa")
+        return response, 401
 # ==================== FUNCIONES DE CORREO ====================
 
 def enviar_correo(destinatario, asunto, cuerpo_html, cuerpo_texto=None):
@@ -323,13 +361,16 @@ def login():
     
     return redirect(url_for('login'))
 
-
 @app.route('/logout')
 def logout():
     """Cerrar sesión"""
-    session.clear()
+    session.clear()  # Limpiar sesión
+    response = redirect(url_for('index'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
     flash('Sesión cerrada correctamente', 'info')
-    return redirect(url_for('index'))
+    return response
 
 # ==================== DASHBOARD ADMIN ====================
 
@@ -1715,6 +1756,136 @@ def cambiar_password():
             return redirect(url_for('admin_dashboard'))
     
     return render_template('cambiar_password.html')
+
+@app.route('/recuperar-password', methods=['GET'])
+def recuperar_password_form():
+    """Mostrar formulario para restablecer contraseña usando token"""
+    token = request.args.get('token')
+    tipo = request.args.get('tipo')  # 'admin' o 'alumno'
+    
+    if not token or not tipo:
+        flash('Enlace de recuperación inválido', 'error')
+        return redirect(url_for('login'))
+    
+    conexion = config.conectar_db()
+    try:
+        with conexion.cursor() as cursor:
+            # Buscar el token en la tabla de recuperación
+            cursor.execute("""
+                SELECT * FROM recuperacion_password 
+                WHERE token = %s AND tipo_usuario = %s 
+                AND usado = FALSE AND fecha_expiracion > NOW()
+            """, (token, tipo))
+            
+            recuperacion = cursor.fetchone()
+            
+            if not recuperacion:
+                flash('El enlace ha expirado o ya fue utilizado', 'error')
+                return redirect(url_for('login'))
+            
+            return render_template('recuperar_password.html', token=token, tipo=tipo)
+            
+    except Exception as e:
+        print(f"Error: {e}")
+        flash('Error al verificar el enlace de recuperación', 'error')
+        return redirect(url_for('login'))
+    finally:
+        conexion.close()
+
+
+@app.route('/recuperar-password', methods=['POST'])
+def recuperar_password_procesar():
+    """Procesar el restablecimiento de contraseña"""
+    token = request.form.get('token')
+    tipo = request.form.get('tipo')
+    nueva_password = request.form.get('nueva_password')
+    confirmar_password = request.form.get('confirmar_password')
+    
+    if not token or not tipo:
+        flash('Datos inválidos', 'error')
+        return redirect(url_for('login'))
+    
+    if not nueva_password or not confirmar_password:
+        flash('Todos los campos son requeridos', 'error')
+        return redirect(url_for('recuperar_password_form', token=token, tipo=tipo))
+    
+    if nueva_password != confirmar_password:
+        flash('Las contraseñas no coinciden', 'error')
+        return redirect(url_for('recuperar_password_form', token=token, tipo=tipo))
+    
+    # Validación de contraseña fuerte
+    if len(nueva_password) < 8:
+        flash('La contraseña debe tener al menos 8 caracteres', 'error')
+        return redirect(url_for('recuperar_password_form', token=token, tipo=tipo))
+    
+    if not re.search(r'[A-Z]', nueva_password):
+        flash('La contraseña debe tener al menos una letra mayúscula (A-Z)', 'error')
+        return redirect(url_for('recuperar_password_form', token=token, tipo=tipo))
+    
+    if not re.search(r'[a-z]', nueva_password):
+        flash('La contraseña debe tener al menos una letra minúscula (a-z)', 'error')
+        return redirect(url_for('recuperar_password_form', token=token, tipo=tipo))
+    
+    if not re.search(r'[0-9]', nueva_password):
+        flash('La contraseña debe tener al menos un número (0-9)', 'error')
+        return redirect(url_for('recuperar_password_form', token=token, tipo=tipo))
+    
+    if not re.search(r'[!@#$%^&*()_\-+=<>?{}[\]~]', nueva_password):
+        flash('La contraseña debe tener al menos un carácter especial (!@#$%^&*)', 'error')
+        return redirect(url_for('recuperar_password_form', token=token, tipo=tipo))
+    
+    hashed = generate_password_hash(nueva_password)
+    conexion = config.conectar_db()
+    
+    try:
+        with conexion.cursor() as cursor:
+            # Primero obtener el usuario_id desde el token
+            cursor.execute("""
+                SELECT usuario_id, tipo_usuario FROM recuperacion_password 
+                WHERE token = %s AND usado = FALSE
+            """, (token,))
+            recuperacion = cursor.fetchone()
+            
+            if not recuperacion:
+                flash('Token inválido o ya utilizado', 'error')
+                return redirect(url_for('login'))
+            
+            usuario_id = recuperacion['usuario_id']
+            tipo_usuario = recuperacion['tipo_usuario']
+            
+            # Actualizar la contraseña del usuario
+            if tipo_usuario == 'alumno':
+                cursor.execute("""
+                    UPDATE alumnos 
+                    SET password = %s, primer_login = FALSE 
+                    WHERE id_alumno = %s
+                """, (hashed, usuario_id))
+            else:
+                cursor.execute("""
+                    UPDATE administrador 
+                    SET password = %s, primer_login = FALSE 
+                    WHERE id_control = %s
+                """, (hashed, usuario_id))
+            
+            # Marcar el token como usado
+            cursor.execute("""
+                UPDATE recuperacion_password 
+                SET usado = TRUE 
+                WHERE token = %s
+            """, (token,))
+            
+            conexion.commit()
+            
+            flash('Contraseña restablecida exitosamente. Ahora puedes iniciar sesión.', 'success')
+            return redirect(url_for('login'))
+            
+    except Exception as e:
+        conexion.rollback()
+        print(f"Error al restablecer password: {e}")
+        flash('Error al restablecer la contraseña', 'error')
+        return redirect(url_for('login'))
+    finally:
+        conexion.close()
 
 # En alumno_dashboard() de app.py
 # ==================== DASHBOARD ALUMNO (CORREGIDO) ====================

@@ -4,6 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <!-- PROTECCIÓN EXTREMA CONTRA CACHÉ -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, private, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta http-equiv="Clear-Site-Data" content="cache">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Dashboard | UES San José del Rincón</title>
     <!-- Fuentes -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -83,5 +91,65 @@
     
 <script src="/static/js/global.js"></script>
 <script src="/static/js/menu.js"></script>
+<script>
+    // Protección adicional específica para esta página
+    (function() {
+        // Verificar sesión inmediatamente
+        fetch('/check-session', {
+            cache: 'no-store',
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.replace('/login');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.authenticated) {
+                window.location.replace('/login');
+            }
+        })
+        .catch(() => {
+            window.location.replace('/login');
+        });
+    })();
+</script>
+<script>
+    // BLOQUEO TOTAL PARA EDGE - Esto se ejecuta ANTES de que la página se muestre
+    (function() {
+        // 1. Prevenir que la página se guarde en el historial de vuelta
+        if (window.performance && window.performance.navigation.type === 2) {
+            // La página vino del botón atrás - redirigir inmediatamente
+            window.location.replace('/login');
+            throw new Error('Bloqueado por navegación atrás');
+        }
+        
+        // 2. Verificar sesión de forma SÍNCRONA (más rápido que fetch)
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/check-session', false);  // false = síncrono
+        xhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
+        xhr.send(null);
+        
+        if (xhr.status === 401) {
+            window.location.replace('/login');
+        } else {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (!data.authenticated) {
+                    window.location.replace('/login');
+                }
+            } catch(e) {
+                window.location.replace('/login');
+            }
+        }
+        
+        // 3. Romper completamente el historial
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', function() {
+            window.location.replace('/login');
+        });
+    })();
+</script>
 </body>
 </html>

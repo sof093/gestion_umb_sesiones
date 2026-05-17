@@ -274,5 +274,41 @@
 </script>
 <script src="/static/js/global_alumno.js"></script>
 <script src="/static/js/alumno_dashboard.js"></script>
+<script>
+    // BLOQUEO TOTAL PARA EDGE - Esto se ejecuta ANTES de que la página se muestre
+    (function() {
+        // 1. Prevenir que la página se guarde en el historial de vuelta
+        if (window.performance && window.performance.navigation.type === 2) {
+            // La página vino del botón atrás - redirigir inmediatamente
+            window.location.replace('/login');
+            throw new Error('Bloqueado por navegación atrás');
+        }
+        
+        // 2. Verificar sesión de forma SÍNCRONA (más rápido que fetch)
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/check-session', false);  // false = síncrono
+        xhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
+        xhr.send(null);
+        
+        if (xhr.status === 401) {
+            window.location.replace('/login');
+        } else {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (!data.authenticated) {
+                    window.location.replace('/login');
+                }
+            } catch(e) {
+                window.location.replace('/login');
+            }
+        }
+        
+        // 3. Romper completamente el historial
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', function() {
+            window.location.replace('/login');
+        });
+    })();
+</script>
 </body>
 </html>

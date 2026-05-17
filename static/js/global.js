@@ -48,7 +48,6 @@
     function configurarBotonTema() {
         const themeToggle = document.getElementById('themeToggle');
         if (themeToggle) {
-            // Remover event listeners previos para evitar duplicados
             const newToggle = themeToggle.cloneNode(true);
             themeToggle.parentNode.replaceChild(newToggle, themeToggle);
             
@@ -66,11 +65,9 @@
         actualizarIconoModo();
     });
     
-    // Exponer función global por si se necesita
     window.toggleModoNocturno = toggleModoNocturno;
 })();
 
-// === CIERRE DE SESIÓN CON SWEETALERT ===
 // === CIERRE DE SESIÓN CON SWEETALERT ===
 document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById('logoutBtn');
@@ -94,7 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDarkMode ? '#f0f0f0' : '#1a2a1e'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Mostrar mensaje de éxito
                     Swal.fire({
                         title: '¡Sesión cerrada!',
                         text: 'Redirigiendo al inicio de sesión...',
@@ -105,11 +101,156 @@ document.addEventListener('DOMContentLoaded', function() {
                             Swal.showLoading();
                         }
                     }).then(() => {
-                        // Redirigir al logout de Flask
-                        window.location.href = '/logout';
+                        window.location.replace('/logout');
                     });
                 }
             });
         });
     }
 });
+
+// ============================================
+// === PROTECCIÓN CONTRA FLECHAS DEL NAVEGADOR ===
+// ============================================
+
+// Verificar si es una página pública
+function esPaginaPublica() {
+    const paginasPublicas = [
+        '/', '/login', '/olvide-password', '/recuperar-password',
+        '/cambiar-password', '/logout'
+    ];
+    const ruta = window.location.pathname;
+    return paginasPublicas.includes(ruta) || ruta === '/';
+}
+
+// Verificar si es una página protegida
+function esPaginaProtegida() {
+    return window.location.pathname.startsWith('/admin/') ||
+           window.location.pathname.startsWith('/alumno/') ||
+           window.location.pathname.includes('/dashboard') ||
+           window.location.pathname.includes('/sesiones') ||
+           window.location.pathname.includes('/usuarios') ||
+           window.location.pathname.includes('/agenda');
+}
+
+// Verificar sesión con el servidor
+async function verificarSesionBackend() {
+    try {
+        const response = await fetch('/check-session', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store'
+            },
+            credentials: 'same-origin'
+        });
+        
+        if (response.status === 401 || !response.ok) {
+            return false;
+        }
+        
+        const data = await response.json();
+        return data.authenticated === true;
+    } catch (error) {
+        console.error('Error verificando sesión:', error);
+        return false;
+    }
+}
+
+// Redirigir al login
+function redirigirALogin() {
+    if (window.location.pathname === '/login') return;
+    console.log('Sesión inválida, redirigiendo a login...');
+    window.location.replace('/login');
+}
+
+// Detectar flechas del navegador
+function detectarFlechasNavegador() {
+    window.addEventListener('pageshow', async function(event) {
+        if (event.persisted && esPaginaProtegida()) {
+            console.log('⚠️ Navegación con flechas detectada');
+            const sesionValida = await verificarSesionBackend();
+            if (!sesionValida) {
+                redirigirALogin();
+            }
+        }
+    });
+}
+
+// Prevenir botón atrás
+function prevenirVolverAtras() {
+    if (!esPaginaProtegida()) return;
+    
+    history.pushState(null, null, location.href);
+    
+    window.addEventListener('popstate', async function() {
+        console.log('⚠️ Botón atrás detectado');
+        const sesionValida = await verificarSesionBackend();
+        if (sesionValida) {
+            history.pushState(null, null, location.href);
+        } else {
+            redirigirALogin();
+        }
+    });
+}
+
+// Verificar sesión al cargar
+async function verificarSesionAlCargar() {
+    if (esPaginaProtegida()) {
+        console.log('Página protegida, verificando sesión...');
+        const sesionValida = await verificarSesionBackend();
+        if (!sesionValida) {
+            redirigirALogin();
+        }
+    }
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    verificarSesionAlCargar();
+    detectarFlechasNavegador();
+    prevenirVolverAtras();
+});
+
+// Protección adicional - Forzar recarga si la página viene de caché
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted && esPaginaProtegida()) {
+        window.location.reload();
+    }
+});
+
+// static/js/global.js
+document.addEventListener('DOMContentLoaded', function() {
+    // Limpiar campos de login en todas las páginas
+    limpiarFormularios();
+});
+
+function limpiarFormularios() {
+    // Buscar formularios de login
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        if (form.action.includes('login')) {
+            form.reset();
+        }
+    });
+    
+    // Limpiar campos específicos
+    const emailInputs = document.querySelectorAll('input[type="email"]');
+    const passwordInputs = document.querySelectorAll('input[type="password"]');
+    
+    emailInputs.forEach(input => {
+        input.value = '';
+    });
+    
+    passwordInputs.forEach(input => {
+        input.value = '';
+    });
+}
+
+// Prevenir autocompletado del navegador
+if (typeof window !== 'undefined') {
+    // Deshabilitar autocompletado para todos los formularios
+    document.querySelectorAll('form').forEach(form => {
+        form.setAttribute('autocomplete', 'off');
+    });
+}
