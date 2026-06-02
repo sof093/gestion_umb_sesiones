@@ -2849,5 +2849,752 @@ def alumno_inscripciones():
     finally:
         conexion.close()
 
+# ==================== EXPORTACIÓN PDF PROFESIONAL PARA ALUMNOS (AGENDA PERSONAL) ====================
+
+@app.route("/alumno/agenda/exportar-pdf")
+def alumno_exportar_agenda_pdf():
+    """Genera PDF profesional de la agenda personal del alumno (mismo formato que admin)"""
+    if not session.get('user_tipo') == 'alumno':
+        return redirect(url_for('login'))
+    
+    id_alumno = session.get('user_id')
+    nombre_alumno = session.get('user_nombre')
+    
+    con = config.conectar_db()
+    if not con:
+        flash("Error de conexión", "error")
+        return redirect(url_for("alumno_agenda"))
+    
+    try:
+        with con.cursor() as cur:
+            # Obtener evento publicado
+            cur.execute("""
+                SELECT * FROM evento 
+                WHERE publicado = TRUE AND activo = 1
+                ORDER BY fecha_publicacion DESC LIMIT 1
+            """)
+            ev = cur.fetchone()
+            
+            if not ev:
+                flash("No hay ninguna jornada publicada actualmente", "warning")
+                return redirect(url_for("alumno_agenda"))
+            
+            # Obtener sesiones en las que está inscrito el alumno
+            cur.execute("""
+                SELECT 
+                    s.*,
+                    ts.nombre_sesion AS tipo,
+                    e.nombre_escenario AS escenario_nombre
+                FROM inscripciones i
+                JOIN sesion s ON i.id_sesion = s.id_sesion
+                JOIN tipo_sesion ts ON ts.id_tipo_sesion = s.id_tipo_sesion
+                JOIN escenarios e ON e.id_escenario = s.id_escenario
+                WHERE i.id_alumno = %s AND s.id_evento = %s
+                ORDER BY s.fecha, s.hora_inicio
+            """, (id_alumno, ev['id_evento']))
+            sesiones = cur.fetchall()
+            
+            if not sesiones:
+                flash("No tienes sesiones inscritas para generar el PDF", "warning")
+                return redirect(url_for("alumno_agenda"))
+            
+            # Obtener instituciones participantes con logo
+            cur.execute("""
+                SELECT DISTINCT s.procedencia_institucion_independiente, s.logo
+                FROM sesion s
+                WHERE s.id_evento = %s 
+                AND s.procedencia_institucion_independiente IS NOT NULL
+                AND s.procedencia_institucion_independiente != ''
+                AND s.logo IS NOT NULL
+                AND s.logo != ''
+            """, (ev['id_evento'],))
+            instituciones = cur.fetchall()
+        
+        # ============================================
+        # FUNCIÓN PARA CARGAR IMÁGENES
+        # ============================================
+        def cargar_imagen(ruta, ancho=50, alto=50):
+            if not ruta:
+                return None
+            try:
+                rutas_posibles = [
+                    ruta,
+                    os.path.join('static', ruta),
+                    os.path.join('static/img', ruta),
+                    os.path.join('static/uploads/sesiones', os.path.basename(ruta)),
+                    ruta.replace('static/', '')
+                ]
+                for ruta_intento in rutas_posibles:
+                    if os.path.exists(ruta_intento):
+                        img = Image(ruta_intento, width=ancho, height=alto, mask='auto')
+                        return img
+                return None
+            except Exception as e:
+                print(f"Error cargando imagen {ruta}: {e}")
+                return None
+        
+        # ============================================
+        # CARGAR LOGOS FIJOS
+        # ============================================
+        logo_gobierno = cargar_imagen('static/img/logo_gobierno.png', ancho=55, alto=50)
+        logo_umb = cargar_imagen('static/img/logo_umb.png', ancho=55, alto=50)
+        
+        # Logo dinámico de la jornada
+        nombre_limpio = ev['nombre'].replace(' ', '_').replace('ñ', 'n').lower()
+        logo_jornada = cargar_imagen(f'static/img/jornadas/{nombre_limpio}.png', ancho=65, alto=50)
+        if not logo_jornada:
+            logo_jornada = cargar_imagen('static/img/logo_jornada_default.png', ancho=65, alto=50)
+        
+        # Logos participantes para el pie
+        logos_participantes = []
+        for inst in instituciones:
+            if inst.get('logo'):
+                logo = cargar_imagen(inst['logo'], ancho=40, alto=35)
+                if logo:
+                    logos_participantes.append(logo)
+        
+        # ============================================
+        # COLORES INSTITUCIONALES
+        # ============================================
+        COLOR_VERDE = colors.HexColor('#70AC46')
+        COLOR_VERDE_OSCURO = colors.HexColor('#4A7A2E')
+        COLOR_VERDE_CLARO = colors.HexColor('#F0F7EC')
+        COLOR_BORDE = colors.HexColor('#C8E6C0')
+        
+        # ============================================
+        # ESTILOS
+        # ============================================
+        styles = getSampleStyleSheet()
+        
+        fecha_style = ParagraphStyle(
+            'FechaStyle', parent=styles['Heading3'],
+            fontSize=11, textColor=COLOR_VERDE_OSCURO,
+            fontName='Helvetica-Bold', spaceAfter=8, spaceBefore=8
+        )
+        
+        header_style = ParagraphStyle(
+            'HeaderStyle', parent=styles['Normal'],
+            fontSize=8, textColor=colors.white,
+            alignment=TA_CENTER, fontName='Helvetica-Bold'
+        )
+        
+        contenido_style = ParagraphStyle(
+            'ContenidoStyle', parent=styles['Normal'],
+            fontSize=7, alignment=TA_LEFT, leading=11
+        )
+        
+        hora_style = ParagraphStyle(
+            'HoraStyle', parent=styles['Normal'],
+            fontSize=8, alignment=TA_CENTER,
+            fontName='Helvetica-Bold', textColor=COLOR_VERDE_OSCURO
+        )
+        
+        # ============================================
+        # PROCESAR SESIONES
+        # ============================================
+        sesiones_por_fecha = defaultdict(list)
+        
+        for sesion in sesiones:
+            fecha_obj = sesion['fecha']
+            fecha_str = fecha_obj.strftime('%Y-%m-%d') if hasattr(fecha_obj, 'strftime') else str(fecha_obj)
+            
+            meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+            dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+            
+            dia_semana = dias_semana[fecha_obj.weekday()] if hasattr(fecha_obj, 'weekday') else 'Lunes'
+            fecha_display = f"{dia_semana} {fecha_obj.day} de {meses[fecha_obj.month - 1]} de {fecha_obj.year}" if hasattr(fecha_obj, 'day') else str(fecha_obj)
+            
+            # Horas
+            hora_inicio = sesion['hora_inicio']
+            hora_fin = sesion['hora_fin']
+            
+            if hasattr(hora_inicio, 'seconds'):
+                hi = f"{hora_inicio.seconds // 3600:02d}:{(hora_inicio.seconds % 3600) // 60:02d}"
+                hf = f"{hora_fin.seconds // 3600:02d}:{(hora_fin.seconds % 3600) // 60:02d}"
+            else:
+                hi = str(hora_inicio)[:5] if hora_inicio else '--:--'
+                hf = str(hora_fin)[:5] if hora_fin else '--:--'
+            
+            # Ponente
+            nombre_parts = filter(None, [
+                sesion.get('nombre_ponente', ''),
+                sesion.get('apellido_paterno', ''),
+                sesion.get('apellido_materno', '')
+            ])
+            ponente = ' '.join(nombre_parts).strip() or 'No asignado'
+            
+            # Institución
+            institucion = sesion.get('procedencia_institucion_independiente', '')
+            institucion_display = f"🏛️ {institucion}" if institucion else "🎓 Independiente"
+            
+            # Foto del ponente
+            foto_ponente = None
+            foto_path = sesion.get('fotografia')
+            if foto_path and foto_path.strip():
+                foto_ponente = cargar_imagen(foto_path, ancho=30, alto=30)
+            
+            sesiones_por_fecha[fecha_str].append({
+                'fecha_display': fecha_display,
+                'hora': f"{hi} - {hf}",
+                'nombre': sesion['nombre_de_sesion'] or 'Sin nombre',
+                'tipo': sesion['tipo'] or 'N/A',
+                'ponente': ponente,
+                'institucion': institucion_display,
+                'escenario': sesion['escenario_nombre'] or 'N/A',
+                'foto': foto_ponente
+            })
+        
+        # ============================================
+        # CREAR DOCUMENTO PDF
+        # ============================================
+        buffer = BytesIO()
+        
+        doc = BaseDocTemplate(buffer, pagesize=letter,
+                              rightMargin=0.6*inch, leftMargin=0.6*inch,
+                              topMargin=1.2*inch, bottomMargin=1.1*inch)
+        
+        frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
+        
+        def dibujar_encabezado_y_pie(canvas, doc):
+            # Personalizar header para mostrar "Agenda Personal - [Nombre del alumno]"
+            canvas.saveState()
+            
+            ancho_pagina = letter[0]
+            alto_pagina = letter[1]
+            
+            y_logos = alto_pagina - 0.65*inch
+            
+            if logo_gobierno:
+                logo_gobierno.drawOn(canvas, 0.5*inch, y_logos - 0.30*inch)
+            if logo_jornada:
+                logo_jornada.drawOn(canvas, (ancho_pagina / 2) - 0.35*inch, y_logos - 0.30*inch)
+            if logo_umb:
+                logo_umb.drawOn(canvas, ancho_pagina - 0.85*inch, y_logos - 0.30*inch)
+            
+            canvas.setFont('Helvetica-Bold', 11)
+            canvas.setFillColor(COLOR_VERDE_OSCURO)
+            canvas.drawCentredString(ancho_pagina / 2, y_logos - 0.65*inch, ev['nombre'])
+            
+            # Subtítulo: Agenda Personal
+            canvas.setFont('Helvetica', 9)
+            canvas.setFillColor(COLOR_VERDE)
+            canvas.drawCentredString(ancho_pagina / 2, y_logos - 0.80*inch, f"Agenda Personal — {nombre_alumno}")
+            
+            # Fechas del evento
+            fecha_inicio = ev['fecha_inicio'].strftime('%d/%m/%Y') if hasattr(ev['fecha_inicio'], 'strftime') else str(ev['fecha_inicio'])
+            fecha_fin = ev['fecha_fin'].strftime('%d/%m/%Y') if hasattr(ev['fecha_fin'], 'strftime') else str(ev['fecha_fin'])
+            canvas.setFont('Helvetica', 7)
+            canvas.setFillColorRGB(0.5, 0.5, 0.5)
+            canvas.drawCentredString(ancho_pagina / 2, y_logos - 0.93*inch, f"{fecha_inicio} al {fecha_fin}")
+            
+            y_linea = y_logos - 1.05*inch
+            canvas.setStrokeColor(COLOR_VERDE_OSCURO)
+            canvas.setLineWidth(1)
+            canvas.line(0.5*inch, y_linea, ancho_pagina - 0.5*inch, y_linea)
+            
+            canvas.restoreState()
+            
+            # Pie de página
+            footer(canvas, doc, logos_participantes, COLOR_VERDE)
+        
+        doc.addPageTemplates([PageTemplate(id='Todo', frames=[frame], onPage=dibujar_encabezado_y_pie)])
+        
+        # ============================================
+        # CONSTRUIR CONTENIDO
+        # ============================================
+        elementos = []
+        elementos.append(Spacer(1, 0.15*inch))
+        
+        for fecha_str in sorted(sesiones_por_fecha.keys()):
+            sesiones_dia = sesiones_por_fecha[fecha_str]
+            
+            col_widths = [0.85*inch, 3.2*inch, 0.9*inch, 1.1*inch, 0.65*inch]
+            
+            cabeceras = [
+                Paragraph("<b>HORARIO</b>", header_style),
+                Paragraph("<b>SESIÓN / PONENTE / INSTITUCIÓN</b>", header_style),
+                Paragraph("<b>TIPO</b>", header_style),
+                Paragraph("<b>ESCENARIO</b>", header_style),
+                Paragraph("<b>FOTO</b>", header_style)
+            ]
+            
+            filas = [cabeceras]
+            
+            for s in sesiones_dia:
+                hora_celda = Paragraph(f"<b>{s['hora']}</b>", hora_style)
+                
+                contenido = f"""
+                <b><font color='{COLOR_VERDE_OSCURO}'>{s['nombre']}</font></b><br/>
+                <font color='#666666' size=7>👤 {s['ponente']}</font><br/>
+                <font color='{COLOR_VERDE}' size=7>{s['institucion']}</font>
+                """
+                sesion_celda = Paragraph(contenido, contenido_style)
+                tipo_celda = Paragraph(s['tipo'], contenido_style)
+                escenario_celda = Paragraph(s['escenario'], contenido_style)
+                
+                if s['foto']:
+                    foto_celda = s['foto']
+                else:
+                    foto_celda = Paragraph("📷", ParagraphStyle('FotoStyle', parent=contenido_style, alignment=TA_CENTER, fontSize=10))
+                
+                filas.append([hora_celda, sesion_celda, tipo_celda, escenario_celda, foto_celda])
+            
+            tabla = Table(filas, colWidths=col_widths, repeatRows=1)
+            tabla.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), COLOR_VERDE),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 7),
+                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+                ('ALIGN', (2, 0), (2, 0), 'CENTER'),
+                ('ALIGN', (3, 0), (3, 0), 'LEFT'),
+                ('ALIGN', (4, 0), (4, 0), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('TOPPADDING', (0, 0), (-1, 0), 8),
+                ('GRID', (0, 0), (-1, -1), 0.3, COLOR_BORDE),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, COLOR_VERDE_CLARO]),
+                ('PADDING', (0, 1), (-1, -1), 6),
+                ('VALIGN', (0, 1), (0, -1), 'MIDDLE'),
+                ('ALIGN', (4, 1), (4, -1), 'CENTER'),
+                ('VALIGN', (4, 1), (4, -1), 'MIDDLE'),
+            ]))
+            
+            bloque_dia = KeepTogether([
+                Paragraph(f"■  {sesiones_dia[0]['fecha_display']}", fecha_style),
+                Spacer(1, 0.05*inch),
+                tabla,
+                Spacer(1, 0.15*inch),
+            ])
+            elementos.append(bloque_dia)
+        
+        doc.build(elementos)
+        
+        from flask import make_response
+        response = make_response(buffer.getvalue())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename="agenda_{nombre_alumno.replace(" ", "_")}_{ev["nombre"].replace(" ", "_")}.pdf"'
+        buffer.close()
+        return response
+        
+    except Exception as e:
+        print(f"[Alumno Agenda PDF Error] {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"Error al generar PDF: {e}", "error")
+        return redirect(url_for("alumno_agenda"))
+    finally:
+        con.close()
+# ==================== EXPORTACIÓN PDF (VERTICAL CON ESPACIADO CORREGIDO) ====================
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Image, Paragraph, PageTemplate, BaseDocTemplate, Frame, KeepTogether
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from collections import defaultdict
+import os
+
+def footer(canvas, doc, logos_participantes, COLOR_VERDE):
+    """Dibuja el pie de página con espaciado adecuado"""
+    canvas.saveState()
+    
+    ancho_pagina = letter[0]
+    
+    # Posición base del pie (más arriba para dar espacio)
+    y_base = 0.65*inch
+    
+    # Línea separadora
+    canvas.setStrokeColor(COLOR_VERDE)
+    canvas.setLineWidth(0.5)
+    canvas.line(0.5*inch, y_base + 0.15*inch, ancho_pagina - 0.5*inch, y_base + 0.15*inch)
+    
+    # Espacio después de la línea
+    # Lema institucional
+    canvas.setFont('Helvetica-Oblique', 7)
+    canvas.setFillColor(COLOR_VERDE)
+    lema = "CULTURA QUE INSPIRA, CONOCIMIENTO QUE TRANSFORMA"
+    canvas.drawCentredString(ancho_pagina / 2, y_base - 0.05*inch, lema)
+    
+    # Logos participantes (con más espacio)
+    if logos_participantes:
+        logos_mostrar = logos_participantes[:6]
+        ancho_logo = 0.45 * inch
+        alto_logo = 0.35 * inch
+        espacio = 0.10 * inch
+        
+        total_ancho = len(logos_mostrar) * ancho_logo + (len(logos_mostrar) - 1) * espacio
+        inicio_x = (ancho_pagina - total_ancho) / 2
+        y_logos = y_base - 0.55 * inch  # Más abajo para dar espacio
+        
+        for i, logo_img in enumerate(logos_mostrar):
+            x = inicio_x + i * (ancho_logo + espacio)
+            logo_img.drawWidth = ancho_logo
+            logo_img.drawHeight = alto_logo
+            logo_img.drawOn(canvas, x, y_logos)
+    
+    # Copyright y número de página (más abajo)
+    y_copyright = 0.25*inch
+    canvas.setFont('Helvetica', 6)
+    canvas.setFillColorRGB(0.6, 0.6, 0.6)
+    canvas.drawString(0.5*inch, y_copyright, 
+        "")
+    
+    # Número de página a la derecha
+    canvas.drawRightString(ancho_pagina - 0.5*inch, y_copyright, f"Página {doc.page}")
+    
+    canvas.restoreState()
+
+def header(canvas, doc, logo_gobierno, logo_jornada, logo_umb, ev, COLOR_VERDE_OSCURO):
+    """Dibuja el encabezado con espaciado adecuado"""
+    canvas.saveState()
+    
+    ancho_pagina = letter[0]
+    alto_pagina = letter[1]
+    
+    # Posición superior para logos
+    y_logos = alto_pagina - 0.65*inch
+    
+    # Logo izquierdo (Gobierno)
+    if logo_gobierno:
+        logo_gobierno.drawOn(canvas, 0.5*inch, y_logos - 0.30*inch)
+    
+    # Logo central (Jornada)
+    if logo_jornada:
+        logo_jornada.drawOn(canvas, (ancho_pagina / 2) - 0.35*inch, y_logos - 0.30*inch)
+    
+    # Logo derecho (UMB)
+    if logo_umb:
+        logo_umb.drawOn(canvas, ancho_pagina - 0.85*inch, y_logos - 0.30*inch)
+    
+    # Título del evento (debajo de logos)
+    canvas.setFont('Helvetica-Bold', 11)
+    canvas.setFillColor(COLOR_VERDE_OSCURO)
+    canvas.drawCentredString(ancho_pagina / 2, y_logos - 0.65*inch, ev['nombre'])
+    
+    # Fechas
+    fecha_inicio = ev['fecha_inicio'].strftime('%d/%m/%Y') if hasattr(ev['fecha_inicio'], 'strftime') else str(ev['fecha_inicio'])
+    fecha_fin = ev['fecha_fin'].strftime('%d/%m/%Y') if hasattr(ev['fecha_fin'], 'strftime') else str(ev['fecha_fin'])
+    canvas.setFont('Helvetica', 8)
+    canvas.setFillColorRGB(0.5, 0.5, 0.5)
+    canvas.drawCentredString(ancho_pagina / 2, y_logos - 0.80*inch, f"{fecha_inicio} al {fecha_fin}")
+    
+    # Línea separadora (más abajo para dar espacio)
+    y_linea = y_logos - 0.95*inch
+    canvas.setStrokeColor(COLOR_VERDE_OSCURO)
+    canvas.setLineWidth(1)
+    canvas.line(0.5*inch, y_linea, ancho_pagina - 0.5*inch, y_linea)
+    
+    canvas.restoreState()
+
+@app.route("/admin/eventos/<int:id_evento>/exportar-pdf")
+def exportar_itinerario_pdf(id_evento):
+    """Genera PDF profesional en orientación VERTICAL con espaciado corregido"""
+    if not session.get("admin_logged"):
+        return redirect(url_for("index"))
+    
+    con = config.conectar_db()
+    if not con:
+        flash("Error de conexión", "error")
+        return redirect(url_for("admin_sesiones"))
+    
+    try:
+        with con.cursor() as cur:
+            cur.execute("SELECT * FROM evento WHERE id_evento = %s", (id_evento,))
+            ev = cur.fetchone()
+            if not ev:
+                flash("Evento no encontrado", "error")
+                return redirect(url_for("admin_sesiones"))
+            
+            cur.execute("""
+                SELECT 
+                    s.*,
+                    ts.nombre_sesion AS tipo,
+                    e.nombre_escenario AS escenario_nombre
+                FROM sesion s
+                JOIN tipo_sesion ts ON ts.id_tipo_sesion = s.id_tipo_sesion
+                JOIN escenarios e ON e.id_escenario = s.id_escenario
+                WHERE s.id_evento = %s
+                ORDER BY s.fecha, s.hora_inicio
+            """, (id_evento,))
+            sesiones = cur.fetchall()
+            
+            # Obtener instituciones participantes con logo
+            cur.execute("""
+                SELECT DISTINCT s.procedencia_institucion_independiente, s.logo
+                FROM sesion s
+                WHERE s.id_evento = %s 
+                AND s.procedencia_institucion_independiente IS NOT NULL
+                AND s.procedencia_institucion_independiente != ''
+                AND s.logo IS NOT NULL
+                AND s.logo != ''
+            """, (id_evento,))
+            instituciones = cur.fetchall()
+        
+        # ============================================
+        # FUNCIÓN PARA CARGAR IMÁGENES
+        # ============================================
+        def cargar_imagen(ruta, ancho=50, alto=50):
+            if not ruta:
+                return None
+            try:
+                rutas_posibles = [
+                    ruta,
+                    os.path.join('static', ruta),
+                    os.path.join('static/img', ruta),
+                    os.path.join('static/uploads/sesiones', os.path.basename(ruta)),
+                    ruta.replace('static/', '')
+                ]
+                for ruta_intento in rutas_posibles:
+                    if os.path.exists(ruta_intento):
+                        img = Image(ruta_intento, width=ancho, height=alto, mask='auto')
+                        return img
+                return None
+            except Exception as e:
+                print(f"Error cargando imagen {ruta}: {e}")
+                return None
+        
+        # ============================================
+        # CARGAR LOGOS FIJOS
+        # ============================================
+        logo_gobierno = cargar_imagen('static/img/logo_gobierno.png', ancho=55, alto=50)
+        logo_umb = cargar_imagen('static/img/logo_umb.png', ancho=55, alto=50)
+        
+        # Logo dinámico de la jornada
+        nombre_limpio = ev['nombre'].replace(' ', '_').replace('ñ', 'n').lower()
+        logo_jornada = cargar_imagen(f'static/img/jornadas/{nombre_limpio}.png', ancho=65, alto=50)
+        if not logo_jornada:
+            logo_jornada = cargar_imagen('static/img/logo_jornada_default.png', ancho=65, alto=50)
+        
+        # Logos participantes para el pie
+        logos_participantes = []
+        for inst in instituciones:
+            if inst.get('logo'):
+                logo = cargar_imagen(inst['logo'], ancho=40, alto=35)
+                if logo:
+                    logos_participantes.append(logo)
+        
+        # ============================================
+        # COLORES INSTITUCIONALES
+        # ============================================
+        COLOR_VERDE = colors.HexColor('#70AC46')
+        COLOR_VERDE_OSCURO = colors.HexColor('#4A7A2E')
+        COLOR_VERDE_CLARO = colors.HexColor('#F0F7EC')
+        COLOR_BORDE = colors.HexColor('#C8E6C0')
+        
+        # ============================================
+        # ESTILOS
+        # ============================================
+        styles = getSampleStyleSheet()
+        
+        fecha_style = ParagraphStyle(
+            'FechaStyle', parent=styles['Heading3'],
+            fontSize=11, textColor=COLOR_VERDE_OSCURO,
+            fontName='Helvetica-Bold', spaceAfter=8, spaceBefore=8
+        )
+        
+        header_style = ParagraphStyle(
+            'HeaderStyle', parent=styles['Normal'],
+            fontSize=8, textColor=colors.white,
+            alignment=TA_CENTER, fontName='Helvetica-Bold'
+        )
+        
+        contenido_style = ParagraphStyle(
+            'ContenidoStyle', parent=styles['Normal'],
+            fontSize=7, alignment=TA_LEFT, leading=11
+        )
+        
+        hora_style = ParagraphStyle(
+            'HoraStyle', parent=styles['Normal'],
+            fontSize=8, alignment=TA_CENTER,
+            fontName='Helvetica-Bold', textColor=COLOR_VERDE_OSCURO
+        )
+        
+        # ============================================
+        # PROCESAR SESIONES
+        # ============================================
+        sesiones_por_fecha = defaultdict(list)
+        
+        for sesion in sesiones:
+            fecha_obj = sesion['fecha']
+            fecha_str = fecha_obj.strftime('%Y-%m-%d') if hasattr(fecha_obj, 'strftime') else str(fecha_obj)
+            
+            meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+            dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+            
+            dia_semana = dias_semana[fecha_obj.weekday()] if hasattr(fecha_obj, 'weekday') else 'Lunes'
+            fecha_display = f"{dia_semana} {fecha_obj.day} de {meses[fecha_obj.month - 1]} de {fecha_obj.year}" if hasattr(fecha_obj, 'day') else str(fecha_obj)
+            
+            # Horas
+            hora_inicio = sesion['hora_inicio']
+            hora_fin = sesion['hora_fin']
+            
+            if hasattr(hora_inicio, 'seconds'):
+                hi = f"{hora_inicio.seconds // 3600:02d}:{(hora_inicio.seconds % 3600) // 60:02d}"
+                hf = f"{hora_fin.seconds // 3600:02d}:{(hora_fin.seconds % 3600) // 60:02d}"
+            else:
+                hi = str(hora_inicio)[:5] if hora_inicio else '--:--'
+                hf = str(hora_fin)[:5] if hora_fin else '--:--'
+            
+            # Ponente
+            nombre_parts = filter(None, [
+                sesion.get('nombre_ponente', ''),
+                sesion.get('apellido_paterno', ''),
+                sesion.get('apellido_materno', '')
+            ])
+            ponente = ' '.join(nombre_parts).strip() or 'No asignado'
+            
+            # Institución
+            institucion = sesion.get('procedencia_institucion_independiente', '')
+            institucion_display = f"🏛️ {institucion}" if institucion else "🎓 Independiente"
+            
+            # Foto del ponente
+            foto_ponente = None
+            foto_path = sesion.get('fotografia')
+            if foto_path and foto_path.strip():
+                foto_ponente = cargar_imagen(foto_path, ancho=30, alto=30)
+            
+            sesiones_por_fecha[fecha_str].append({
+                'fecha_display': fecha_display,
+                'hora': f"{hi} - {hf}",
+                'nombre': sesion['nombre_de_sesion'] or 'Sin nombre',
+                'tipo': sesion['tipo'] or 'N/A',
+                'ponente': ponente,
+                'institucion': institucion_display,
+                'escenario': sesion['escenario_nombre'] or 'N/A',
+                'foto': foto_ponente
+            })
+        
+        # ============================================
+        # CREAR DOCUMENTO CON PLANTILLA PERSONALIZADA
+        # ============================================
+        buffer = BytesIO()
+        
+        # Márgenes aumentados para evitar superposición
+        doc = BaseDocTemplate(buffer, pagesize=letter,
+                              rightMargin=0.6*inch, leftMargin=0.6*inch,
+                              topMargin=1.2*inch, bottomMargin=1.1*inch)
+        
+        frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
+        
+        def dibujar_encabezado_y_pie(canvas, doc):
+            header(canvas, doc, logo_gobierno, logo_jornada, logo_umb, ev, COLOR_VERDE_OSCURO)
+            footer(canvas, doc, logos_participantes, COLOR_VERDE)
+        
+        doc.addPageTemplates([PageTemplate(id='Todo', frames=[frame], onPage=dibujar_encabezado_y_pie)])
+        
+        # ============================================
+        # CONSTRUIR CONTENIDO
+        # ============================================
+        elementos = []
+        
+        # Espaciador inicial grande para separar de la línea
+        elementos.append(Spacer(1, 0.15*inch))
+        
+        # ============================================
+        # GENERAR TABLAS POR DÍA
+        # ============================================
+        for fecha_str in sorted(sesiones_por_fecha.keys()):
+            sesiones_dia = sesiones_por_fecha[fecha_str]
+            
+            # Columnas ajustadas para vertical con más espacio
+            col_widths = [0.85*inch, 3.2*inch, 0.9*inch, 1.1*inch, 0.65*inch]
+            
+            cabeceras = [
+                Paragraph("<b>HORARIO</b>", header_style),
+                Paragraph("<b>SESIÓN / PONENTE / INSTITUCIÓN</b>", header_style),
+                Paragraph("<b>TIPO</b>", header_style),
+                Paragraph("<b>ESCENARIO</b>", header_style),
+                Paragraph("<b>FOTO</b>", header_style)
+            ]
+            
+            filas = [cabeceras]
+            
+            for s in sesiones_dia:
+                # Horario
+                hora_celda = Paragraph(f"<b>{s['hora']}</b>", hora_style)
+                
+                # Contenido principal
+                contenido = f"""
+                <b><font color='{COLOR_VERDE_OSCURO}'>{s['nombre']}</font></b><br/>
+                <font color='#666666' size=7>👤 {s['ponente']}</font><br/>
+                <font color='{COLOR_VERDE}' size=7>{s['institucion']}</font>
+                """
+                sesion_celda = Paragraph(contenido, contenido_style)
+                
+                # Tipo
+                tipo_celda = Paragraph(s['tipo'], contenido_style)
+                
+                # Escenario
+                escenario_celda = Paragraph(s['escenario'], contenido_style)
+                
+                # Foto
+                if s['foto']:
+                    foto_celda = s['foto']
+                else:
+                    foto_celda = Paragraph("📷", ParagraphStyle('FotoStyle', parent=contenido_style, alignment=TA_CENTER, fontSize=10))
+                
+                filas.append([hora_celda, sesion_celda, tipo_celda, escenario_celda, foto_celda])
+            
+            # Crear tabla
+            tabla = Table(filas, colWidths=col_widths, repeatRows=1)
+            tabla.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), COLOR_VERDE),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 7),
+                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+                ('ALIGN', (2, 0), (2, 0), 'CENTER'),
+                ('ALIGN', (3, 0), (3, 0), 'LEFT'),
+                ('ALIGN', (4, 0), (4, 0), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('TOPPADDING', (0, 0), (-1, 0), 8),
+                ('GRID', (0, 0), (-1, -1), 0.3, COLOR_BORDE),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, COLOR_VERDE_CLARO]),
+                ('PADDING', (0, 1), (-1, -1), 6),
+                ('VALIGN', (0, 1), (0, -1), 'MIDDLE'),
+                ('ALIGN', (4, 1), (4, -1), 'CENTER'),
+                ('VALIGN', (4, 1), (4, -1), 'MIDDLE'),
+            ]))
+            
+            # Usar KeepTogether para que fecha + tabla vayan juntos
+            bloque_dia = KeepTogether([
+                Paragraph(f"■  {sesiones_dia[0]['fecha_display']}", fecha_style),
+                Spacer(1, 0.05*inch),
+                tabla,
+                Spacer(1, 0.15*inch),
+            ])
+            elementos.append(bloque_dia)
+        
+        if not sesiones_por_fecha:
+            elementos.append(Paragraph("No hay sesiones registradas para este evento.", contenido_style))
+        
+        # Construir PDF
+        doc.build(elementos)
+        
+        from flask import make_response
+        response = make_response(buffer.getvalue())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename="itinerario_{ev["nombre"].replace(" ", "_")}.pdf"'
+        buffer.close()
+        return response
+        
+    except Exception as e:
+        print(f"[PDF Error] {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"Error al generar PDF: {e}", "error")
+        return redirect(url_for("admin_sesiones"))
+    finally:
+        con.close()
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

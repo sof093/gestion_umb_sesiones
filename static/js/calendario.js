@@ -436,7 +436,12 @@ function actualizarDiasPreview() {
 }
 
 function exportarPDF() {
-  Swal.fire("Info", "Función PDF - Requiere configuración adicional", "info");
+    if (!CalState.eventoActivo) {
+        Swal.fire('Atención', 'Selecciona un evento primero', 'info');
+        return;
+    }
+    const evento = CalState.eventoActivo;
+    window.location.href = `/admin/eventos/${evento.id_evento}/exportar-pdf`;
 }
 
 function exportarExcel() {

@@ -1410,6 +1410,9 @@ async function quitarDesdeModal() {
 // ============================================================
 // DESCARGAR PDF
 // ============================================================
+// ============================================================
+// DESCARGAR PDF PROFESIONAL (con ReportLab)
+// ============================================================
 document.getElementById('btnDescargarPDF').addEventListener('click', () => {
     if (!SESIONES_INSCRITAS.length) {
         Swal.fire({
@@ -1420,7 +1423,24 @@ document.getElementById('btnDescargarPDF').addEventListener('click', () => {
         });
         return;
     }
-    generarPDF();
+    
+    // Mostrar loading
+    Swal.fire({
+        title: 'Generando PDF...',
+        text: 'Por favor espera, estamos preparando tu agenda personalizada.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Redirigir a la nueva ruta de PDF profesional
+    window.location.href = '/alumno/agenda/exportar-pdf';
+    
+    // Cerrar el Swal después de un momento (la redirección ocurrirá)
+    setTimeout(() => {
+        Swal.close();
+    }, 1000);
 });
 
 function generarPDF() {
