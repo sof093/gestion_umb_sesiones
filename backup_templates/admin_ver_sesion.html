@@ -1,0 +1,92 @@
+<!-- templates/admin_ver_sesion.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ver Sesión</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/admin_ver_sesion.css">
+</head>
+<body>
+    <div class="modal-contenido">
+        <div class="modal-header-custom">
+            <h2 id="modalTitulo">{{ sesion.nombre_de_sesion if sesion else 'Detalles de la Sesión' }}</h2>
+            <button class="btn-cerrar-modal" onclick="window.parent.cerrarModalSesion()">&times;</button>
+        </div>
+        
+        <div class="modal-body-custom" id="modalBody">
+            {% if sesion %}
+            {% set nombre_completo = sesion.nombre_ponente + ' ' + sesion.apellido_paterno + (' ' + sesion.apellido_materno if sesion.apellido_materno else '') %}
+            
+            <div class="modal-detalle-seccion">
+                <h3> Información General</h3>
+                <div class="modal-detalle-grid">
+                    <span class="modal-detalle-label"> Fecha:</span>
+                    <span class="modal-detalle-valor">{{ sesion.fecha_str }}</span>
+                    <span class="modal-detalle-label"> Horario:</span>
+                    <span class="modal-detalle-valor">{{ sesion.hora_inicio_str }} - {{ sesion.hora_fin_str }}</span>
+                    <span class="modal-detalle-label"> Sede:</span>
+                    <span class="modal-detalle-valor">{{ sesion.sede or 'No especificada' }}</span>
+                    <span class="modal-detalle-label"> Cupo:</span>
+                    <span class="modal-detalle-valor">{{ sesion.cupo_audiencia or 'No especificado' }} personas</span>
+                    <span class="modal-detalle-label"> Escenario:</span>
+                    <span class="modal-detalle-valor">{{ sesion.escenario_nombre or 'No especificado' }}</span>
+                </div>
+            </div>
+            
+            <div class="modal-detalle-seccion">
+                <h3> Ponente</h3>
+                <div class="modal-detalle-grid">
+                    <span class="modal-detalle-label">Nombre:</span>
+                    <span class="modal-detalle-valor"><strong>{{ nombre_completo }}</strong></span>
+                    <span class="modal-detalle-label">Perfil profesional:</span>
+                    <span class="modal-detalle-valor">{{ sesion.perfil_profesional or 'No especificado' }}</span>
+                </div>
+                {% if sesion.biografia %}
+                <div class="modal-detalle-texto"><strong> Biografía:</strong><br>{{ sesion.biografia }}</div>
+                {% endif %}
+                {% if sesion.fotografia %}
+                <div class="modal-detalle-foto"><img src="/static/{{ sesion.fotografia }}" alt="Foto del ponente"></div>
+                {% endif %}
+            </div>
+            
+            <div class="modal-detalle-seccion">
+                <h3> Información Institucional</h3>
+                <div class="modal-detalle-grid">
+                    <span class="modal-detalle-label">Tipo de sesión:</span>
+                    <span class="modal-detalle-valor">{{ sesion.tipo or 'No especificado' }}</span>
+                    <span class="modal-detalle-label">Carrera asociada:</span>
+                    <span class="modal-detalle-valor">{{ sesion.carrera_nombre or 'General (Todas las carreras)' }}</span>
+                    <span class="modal-detalle-label">Procedencia:</span>
+                    <span class="modal-detalle-valor">{{ sesion.procedencia_institucion_independiente or 'No especificada' }}</span>
+                </div>
+                {% if sesion.logo %}
+                <div class="modal-detalle-foto"><img src="/static/{{ sesion.logo }}" alt="Logo institucional" style="max-width:120px"></div>
+                {% endif %}
+            </div>
+            
+            {% if sesion.descripcion_materiales %}
+            <div class="modal-detalle-seccion">
+                <h3> Materiales Requeridos</h3>
+                <div class="modal-detalle-texto">{{ sesion.descripcion_materiales }}</div>
+            </div>
+            {% endif %}
+            
+            <div class="modal-detalle-seccion">
+                <h3> Ubicación</h3>
+                <div class="modal-detalle-texto">El Aula Magna se encuentra ubicada en el edificio principal de la universidad, en el primer piso del bloque académico, frente a la sala de cómputo y al lado izquierdo de la plazoleta.</div>
+            </div>
+            {% else %}
+            <p>Sesión no encontrada</p>
+            {% endif %}
+        </div>
+        
+        <div class="modal-footer-custom">
+            <button class="btn-cerrar" onclick="window.parent.cerrarModalSesion()">Cerrar</button>
+        </div>
+    </div>
+
+<script src="/static/js/global.js"></script>
+</body>
+</html>

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ponentes — Jornada Académica UES</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/base_alumno.css">
+    <link rel="stylesheet" href="/static/css/alumnos_ponentes.css">
+</head>
+<body>
+
+<!-- ============================================================
+     NAVBAR
+============================================================ -->
+<nav class="navbar">
+    <!-- Logo -->
+    <div class="navbar-brand">UES San José del Rincón</div>
+    
+    <!-- Espacio flexible -->
+    <div class="navbar-spacer"></div>
+    
+    <!-- ACCIONES SIEMPRE VISIBLES (fuera del menú) -->
+    <div class="navbar-actions">
+        <button class="btn-icon-nav" id="themeToggle" title="Cambiar tema">
+            <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+        <div class="user-chip">
+            <div class="avatar" id="navAvatar"></div>
+            <span class="user-name" id="navNombre"></span>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="btn-icon-nav" id="logoutBtn" title="Cerrar sesión">
+            <i class="fas fa-sign-out-alt"></i>
+        </a>
+    </div>
+    
+    <!-- Botón hamburguesa -->
+    <button class="navbar-toggle" id="navbarToggle" aria-label="Menú">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Menú colapsable (solo enlaces de navegación) -->
+    <div class="navbar-collapse" id="navbarCollapse">
+        <a href="{{ url_for('alumno.alumno_agenda') }}" class="nav-link-pill">
+            <i class="fas fa-calendar-check"></i> Mi Agenda
+        </a>
+        <a href="{{ url_for('alumno.alumnos_ponentes') }}" class="nav-link-pill">
+            <i class="fas fa-chalkboard-user"></i> Ver Ponentes
+        </a>
+    </div>
+</nav>
+
+<!-- ============================================================
+     HEADER DE LA PÁGINA
+============================================================ -->
+<div class="page-header">
+    <div class="page-header-content">
+        <div class="page-header-tag">
+            <i class="fas fa-chalkboard-user"></i> Ponentes destacados
+        </div>
+        <h1>Conoce a nuestros expertos</h1>
+        <p class="page-header-sub">
+            Los profesionales que compartirán su conocimiento en la Jornada Académica
+        </p>
+        
+        {% if evento %}
+        <div class="evento-info-mini">
+            <i class="fas fa-calendar-alt"></i>
+            <span>{{ evento.nombre }}</span>
+            {% if evento.fecha_inicio %}
+            <i class="fas fa-calendar-day" style="margin-left: 1rem;"></i>
+            <span>
+                {{ evento.fecha_inicio_display if evento.fecha_inicio_display else evento.fecha_inicio }}
+                {% if evento.fecha_fin %}
+                - {{ evento.fecha_fin_display if evento.fecha_fin_display else evento.fecha_fin }}
+                {% endif %}
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ============================================================
+     CONTROLES DE BÚSQUEDA
+============================================================ -->
+<div class="ponentes-controls-container">
+    <div class="controls-bar-ponentes">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="buscarPonenteInput" placeholder="Buscar por nombre, especialidad...">
+        </div>
+        
+        <div class="filter-group">
+            <select class="filter-select" id="filtroEspecialidad">
+                <option value="">Todas las especialidades</option>
+            </select>
+            
+            <button class="btn-filter-reset" id="resetFiltrosBtn" style="display:none;">
+                <i class="fas fa-times"></i> Limpiar filtros
+            </button>
+        </div>
+    </div>
+    
+    <div class="stats-ponentes">
+        <span id="ponentesCount">0</span> ponentes encontrados
+    </div>
+</div>
+
+<!-- ============================================================
+     GRID DE PONENTES
+============================================================ -->
+<main>
+    {% if not ponentes %}
+    <div class="estado-msg">
+        <i class="fas fa-users-slash"></i>
+        <h2>No hay ponentes disponibles</h2>
+        <p>Actualmente no hay ponentes registrados para esta jornada.</p>
+        <a href="{{ url_for('alumno.alumno_dashboard') }}" class="btn-volver">
+            <i class="fas fa-arrow-left"></i> Volver al inicio
+        </a>
+    </div>
+    {% else %}
+    <div class="ponentes-grid" id="ponentesGrid">
+        {% for ponente in ponentes %}
+        <div class="ponente-card" 
+             data-id="{{ ponente.id_ponente }}"
+             data-nombre="{{ ponente.nombre_completo | lower }}"
+             data-especialidad="{{ (ponente.perfil_profesional or '') | lower }}">
+            
+            <div class="ponente-card-header">
+                <div class="ponente-avatar">
+                    {% if ponente.fotografia and ponente.fotografia != 'None' and ponente.fotografia != '' %}
+                        <img src="{{ url_for('static', filename='uploads/sesiones/' + ponente.fotografia.split('/')[-1]) if ponente.fotografia else '' }}" 
+                             alt="Foto de {{ ponente.nombre_completo }}"
+                             onerror="this.style.display='none'; this.parentElement.querySelector('.avatar-placeholder').style.display='flex'">
+                        <div class="avatar-placeholder" style="display:none;">{{ ponente.iniciales }}</div>
+                    {% else %}
+                        <div class="avatar-placeholder">{{ ponente.iniciales }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="ponente-info">
+                    <h3 class="ponente-nombre">{{ ponente.nombre_completo }}</h3>
+                    <p class="ponente-especialidad">
+                        <i class="fas fa-briefcase"></i> 
+                        {{ ponente.perfil_profesional or 'Conferencista' }}
+                    </p>
+                </div>
+            </div>
+            
+            <div class="ponente-card-body">
+                <div class="ponente-bio">
+                    <i class="fas fa-quote-left"></i>
+                    <p>{{ (ponente.biografia or 'Sin biografía disponible')[:120] }}{% if ponente.biografia and ponente.biografia|length > 120 %}...{% endif %}</p>
+                </div>
+                
+                {% if ponente.sesiones_asociadas %}
+                <div class="ponente-sesiones">
+                    <div class="sesiones-tag">
+                        <i class="fas fa-microphone-alt"></i>
+                        <span>Sesiones a cargo ({{ ponente.sesiones_asociadas|length }}):</span>
+                    </div>
+                    <div class="sesiones-lista">
+                        {% for sesion in ponente.sesiones_asociadas[:2] %}
+                        <span class="badge-sesion">{{ sesion.nombre_de_sesion[:30] }}{% if sesion.nombre_de_sesion|length > 30 %}...{% endif %}</span>
+                        {% endfor %}
+                        {% if ponente.sesiones_asociadas|length > 2 %}
+                        <span class="badge-sesion">+{{ ponente.sesiones_asociadas|length - 2 }} más</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="ponente-card-footer">
+                <button class="btn-ver-perfil" onclick="verDetallePonente('{{ ponente.id_ponente }}')">
+                    <i class="fas fa-user-circle"></i> Ver perfil completo
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="estado-msg" id="sinResultados" style="display:none;">
+        <i class="fas fa-search"></i>
+        <p>No se encontraron ponentes con esos criterios de búsqueda.</p>
+        <button class="btn-limpiar" onclick="limpiarFiltros()">
+            <i class="fas fa-eraser"></i> Limpiar filtros
+        </button>
+    </div>
+    {% endif %}
+</main>
+
+<!-- ============================================================
+     MODAL DE DETALLE DEL PONENTE
+============================================================ -->
+<div class="modal-overlay" id="modalPonenteOverlay" onclick="cerrarModalClick(event)">
+    <div class="modal-box modal-ponente">
+        <div class="modal-head-ponente">
+            <div class="modal-avatar-large" id="modalAvatarLarge">P</div>
+        </div>
+        <div class="modal-content">
+            <button class="modal-close" onclick="cerrarModalPonente()" title="Cerrar">&times;</button>
+            
+            <h2 class="modal-titulo" id="modalPonenteNombre">—</h2>
+            <div class="modal-especialidad" id="modalPonenteEspecialidad">—</div>
+            
+            <div class="modal-section">
+                <div class="modal-section-label">
+                    <i class="fas fa-user-graduate"></i> Biografía
+                </div>
+                <div class="modal-section-body" id="modalPonenteBio"></div>
+            </div>
+            
+            <div class="modal-section" id="modalSesionesSection" style="display:none;">
+                <div class="modal-section-label">
+                    <i class="fas fa-calendar-alt"></i> Sesiones a cargo
+                </div>
+                <div class="modal-section-body" id="modalPonenteSesiones"></div>
+            </div>
+            
+            <div class="modal-buttons">
+                <a href="{{ url_for('alumno.alumno_dashboard') }}" class="btn-volver-modal">
+                    <i class="fas fa-calendar-day"></i> Ver todas las sesiones
+                </a>
+                <button class="btn-cerrar-modal" onclick="cerrarModalPonente()">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     FOOTER
+============================================================ -->
+<footer>
+    <strong>© 2026 UES San José del Rincón</strong><br>
+    Jornada académica y cultural<br>
+    Todos los derechos reservados.
+</footer>
+
+<script>
+    // Datos embebidos del servidor
+    window.NOMBRE_ALUMNO = {{ nombre | tojson }};
+    window.PONENTES_DATA = {
+        {% for ponente in ponentes %}
+        "{{ ponente.id_ponente }}": {
+            id: "{{ ponente.id_ponente }}",
+            nombre_completo: {{ ponente.nombre_completo | tojson }},
+            perfil_profesional: {{ (ponente.perfil_profesional or '') | tojson }},
+            biografia: {{ (ponente.biografia or 'No hay biografía disponible.') | tojson }},
+            foto: {{ (ponente.fotografia or '') | tojson }},
+            iniciales: {{ ponente.iniciales | tojson }},
+            sesiones: [
+                {% for sesion in ponente.sesiones_asociadas %}
+                {
+                    id_sesion: {{ sesion.id_sesion }},
+                    nombre_de_sesion: {{ sesion.nombre_de_sesion | tojson }},
+                    tipo: {{ sesion.tipo | tojson }},
+                    fecha_display: {{ sesion.fecha_display | tojson }},
+                    hora_display: {{ sesion.hora_display | tojson }},
+                    escenario: {{ sesion.escenario | tojson }}
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+</script>
+
+<script>
+    // ============================================================
+    // TODAS LAS FUNCIONES DEFINIDAS AQUÍ
+    // ============================================================
+    
+    let filtroEspecialidadActual = '';
+    
+    // Ver detalle del ponente
+    function verDetallePonente(idPonente) {
+        console.log("🔍 Ver detalle llamado para:", idPonente);
+        
+        const ponente = window.PONENTES_DATA[idPonente];
+        if (!ponente) {
+            Swal.fire({
+                title: 'Error',
+                text: 'No se encontró la información del ponente',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        console.log("📋 Datos del ponente:", ponente);
+        
+        const modal = document.getElementById('modalPonenteOverlay');
+        const avatarLarge = document.getElementById('modalAvatarLarge');
+        const nombreEl = document.getElementById('modalPonenteNombre');
+        const especialidadEl = document.getElementById('modalPonenteEspecialidad');
+        const bioEl = document.getElementById('modalPonenteBio');
+        const sesionesSection = document.getElementById('modalSesionesSection');
+        const sesionesEl = document.getElementById('modalPonenteSesiones');
+        
+        // Configurar avatar
+        if (ponente.foto && ponente.foto !== 'None' && ponente.foto !== '') {
+            const fotoUrl = '/static/uploads/sesiones/' + ponente.foto.split('/').pop();
+            avatarLarge.style.backgroundImage = `url('${fotoUrl}')`;
+            avatarLarge.style.backgroundSize = 'cover';
+            avatarLarge.style.backgroundPosition = 'center';
+            avatarLarge.textContent = '';
+        } else {
+            avatarLarge.style.backgroundImage = 'none';
+            avatarLarge.style.background = 'linear-gradient(135deg, var(--verde-oscuro) 0%, var(--verde-medio) 100%)';
+            avatarLarge.textContent = ponente.iniciales || 'P';
+        }
+        
+        nombreEl.textContent = ponente.nombre_completo || 'Ponente';
+        especialidadEl.textContent = ponente.perfil_profesional || 'Conferencista';
+        bioEl.textContent = ponente.biografia || 'No hay biografía disponible para este ponente.';
+        
+        // Sesiones
+        if (ponente.sesiones && ponente.sesiones.length > 0) {
+            sesionesSection.style.display = 'block';
+            sesionesEl.innerHTML = ponente.sesiones.map(sesion => `
+                <div class="sesion-item-modal">
+                    <strong>📌 ${sesion.nombre_de_sesion || 'Sesión sin nombre'}</strong>
+                    <small>🎯 ${sesion.tipo || 'Sesión'}</small>
+                    <small>📅 ${sesion.fecha_display || 'Fecha por confirmar'} • ⏰ ${sesion.hora_display || 'Horario por confirmar'}</small>
+                    <small>📍 ${sesion.escenario || 'Sin ubicación'}</small>
+                </div>
+            `).join('');
+        } else {
+            sesionesSection.style.display = 'none';
+        }
+        
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function cerrarModalPonente() {
+        const modal = document.getElementById('modalPonenteOverlay');
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    function cerrarModalClick(event) {
+        if (event.target === event.currentTarget) {
+            cerrarModalPonente();
+        }
+    }
+    
+    function filtrarPonentes() {
+        const searchTerm = document.getElementById('buscarPonenteInput').value.toLowerCase();
+        const cards = document.querySelectorAll('.ponente-card');
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const nombre = card.dataset.nombre || '';
+            const especialidad = card.dataset.especialidad || '';
+            
+            const matchesSearch = nombre.includes(searchTerm) || especialidad.includes(searchTerm);
+            const matchesEspecialidad = !filtroEspecialidadActual || especialidad.includes(filtroEspecialidadActual.toLowerCase());
+            
+            if (matchesSearch && matchesEspecialidad) {
+                card.style.display = 'flex';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        const contadorSpan = document.getElementById('ponentesCount');
+        if (contadorSpan) contadorSpan.textContent = visibleCount;
+        
+        const sinResultados = document.getElementById('sinResultados');
+        if (sinResultados) {
+            sinResultados.style.display = visibleCount === 0 ? 'flex' : 'none';
+        }
+    }
+    
+    function llenarFiltroEspecialidades() {
+        const especialidades = new Set();
+        document.querySelectorAll('.ponente-card').forEach(card => {
+            const especialidad = card.dataset.especialidad;
+            if (especialidad && especialidad.trim() && especialidad !== 'conferencista' && especialidad !== '') {
+                especialidades.add(especialidad);
+            }
+        });
+        
+        const select = document.getElementById('filtroEspecialidad');
+        if (select) {
+            Array.from(especialidades).sort().forEach(esp => {
+                const option = document.createElement('option');
+                option.value = esp;
+                option.textContent = esp.charAt(0).toUpperCase() + esp.slice(1);
+                select.appendChild(option);
+            });
+        }
+    }
+    
+    function mostrarBotonReset() {
+        const resetBtn = document.getElementById('resetFiltrosBtn');
+        if (resetBtn) {
+            resetBtn.style.display = (filtroEspecialidadActual !== '') ? 'inline-flex' : 'none';
+        }
+    }
+    
+    function limpiarFiltros() {
+        const searchInput = document.getElementById('buscarPonenteInput');
+        const filtroEspecialidad = document.getElementById('filtroEspecialidad');
+        
+        if (searchInput) searchInput.value = '';
+        if (filtroEspecialidad) filtroEspecialidad.value = '';
+        
+        filtroEspecialidadActual = '';
+        filtrarPonentes();
+        mostrarBotonReset();
+    }
+    
+    function toggleTheme() {
+        const html = document.documentElement;
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        html.setAttribute('data-theme', newTheme);
+        
+        const themeIcon = document.getElementById('themeIcon');
+        if (themeIcon) {
+            themeIcon.className = newTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+        
+        localStorage.setItem('theme', newTheme);
+    }
+    
+    // Inicialización
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("🚀 Página cargada");
+        
+        const totalCards = document.querySelectorAll('.ponente-card').length;
+        console.log(`📊 Total ponentes: ${totalCards}`);
+        
+        const contadorSpan = document.getElementById('ponentesCount');
+        if (contadorSpan) contadorSpan.textContent = totalCards;
+        
+        llenarFiltroEspecialidades();
+        
+        const searchInput = document.getElementById('buscarPonenteInput');
+        if (searchInput) searchInput.addEventListener('input', filtrarPonentes);
+        
+        const filtroEspecialidad = document.getElementById('filtroEspecialidad');
+        if (filtroEspecialidad) {
+            filtroEspecialidad.addEventListener('change', function(e) {
+                filtroEspecialidadActual = e.target.value;
+                filtrarPonentes();
+                mostrarBotonReset();
+            });
+        }
+        
+        const themeToggleBtn = document.getElementById('themeToggle');
+        if (themeToggleBtn) themeToggleBtn.addEventListener('click', toggleTheme);
+        
+        const navbarToggle = document.getElementById('navbarToggle');
+        if (navbarToggle) {
+            navbarToggle.addEventListener('click', function() {
+                const collapse = document.getElementById('navbarCollapse');
+                collapse.classList.toggle('show');
+                collapse.classList.toggle('open');
+            });
+        }
+        
+        const navNombre = document.getElementById('navNombre');
+        const navAvatar = document.getElementById('navAvatar');
+        if (window.NOMBRE_ALUMNO) {
+            if (navNombre) navNombre.textContent = window.NOMBRE_ALUMNO;
+            if (navAvatar) navAvatar.textContent = window.NOMBRE_ALUMNO.charAt(0).toUpperCase();
+        }
+    });
+    
+    // Cargar tema guardado
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        const themeIcon = document.getElementById('themeIcon');
+        if (themeIcon) {
+            themeIcon.className = savedTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+    }
+    
+    // Bloqueo de navegación
+    (function() {
+        if (window.performance && window.performance.navigation.type === 2) {
+            window.location.replace('/auth/login');
+        }
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/auth/check-session', false);
+        xhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
+        xhr.send(null);
+        
+        if (xhr.status === 401) {
+            window.location.replace('/auth/login');
+        } else {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (!data.authenticated) window.location.replace('/auth/login');
+            } catch(e) {
+                window.location.replace('/auth/login');
+            }
+        }
+        
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', function() {
+            window.location.replace('/auth/login');
+        });
+    })();
+</script>
+</body>
+</html>

@@ -45,7 +45,7 @@
 
 <div class="hero">
     <h1 class="hero-title">Gestión de sesiones</h1>
-    <a href="{{ url_for('admin.nueva_sesion') }}" class="btn-nueva">+ Nueva sesión</a>
+    <a href="{{ url_for('nueva_sesion') }}" class="btn-nueva">+ Nueva sesión</a>
 </div>
 
 <!-- ==================== BARRA DE EVENTO ==================== -->
@@ -105,9 +105,9 @@
                 <span class="cal-subtitle" id="calSubtitle"></span>
             </div>
             <div class="cal-actions">
-                <button class="cal-export-btn" id="btnExportPdf" style="background: #f44336; color: white;">
-    <i class="fas fa-file-pdf"></i> Exportar PDF Personalizado
-</button>
+                <button class="cal-export-btn" id="btnExportPdf"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="cal-export-btn" id="btnExportExcel"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="cal-export-btn" id="btnExportHtml"><i class="fas fa-code"></i> HTML</button>
             </div>
         </div>
         <div class="cal-wrapper">
@@ -242,79 +242,7 @@
         </div>
     </div>
 </div>
-<!-- ==================== MODAL EXPORTACIÓN PDF ==================== -->
-<div id="modalExportPdf" class="modal-export-overlay" style="display: none;">
-    <div class="modal-export-container">
-        <div class="modal-export-header">
-            <h3><i class="fas fa-file-pdf"></i> Personalizar PDF del Itinerario</h3>
-            <button class="modal-export-close" id="modalExportClose">&times;</button>
-        </div>
-        
-        <div class="modal-export-body">
-            <form id="formExportPdf">
-                <input type="hidden" id="exportEventoId" value="">
-                
-                <!-- SECCIÓN ENCABEZADO: 3 LOGOS -->
-                <div class="export-section">
-                    <h4><i class="fas fa-heading"></i> Logos del Encabezado</h4>
-                    <div class="logos-encabezado-grid">
-                        <div class="logo-upload-card">
-                            <label>Logo Izquierda</label>
-                            <div class="logo-preview" id="previewIzquierda">
-                                <i class="fas fa-image"></i>
-                                <span>Sin logo</span>
-                            </div>
-                            <input type="file" class="logo-upload-input" data-position="izquierda" accept="image/png,image/jpeg,image/jpg,image/webp">
-                            <button type="button" class="btn-clear-logo" data-position="izquierda">Limpiar</button>
-                        </div>
-                        
-                        <div class="logo-upload-card">
-                            <label>Logo Centro</label>
-                            <div class="logo-preview" id="previewCentro">
-                                <i class="fas fa-image"></i>
-                                <span>Sin logo</span>
-                            </div>
-                            <input type="file" class="logo-upload-input" data-position="centro" accept="image/png,image/jpeg,image/jpg,image/webp">
-                            <button type="button" class="btn-clear-logo" data-position="centro">Limpiar</button>
-                        </div>
-                        
-                        <div class="logo-upload-card">
-                            <label>Logo Derecha</label>
-                            <div class="logo-preview" id="previewDerecha">
-                                <i class="fas fa-image"></i>
-                                <span>Sin logo</span>
-                            </div>
-                            <input type="file" class="logo-upload-input" data-position="derecha" accept="image/png,image/jpeg,image/jpg,image/webp">
-                            <button type="button" class="btn-clear-logo" data-position="derecha">Limpiar</button>
-                        </div>
-                    </div>
-                    <p class="help-text">Formatos: PNG, JPG, WEBP. Tamaño recomendado: 150x150px</p>
-                </div>
-                
-                <!-- SECCIÓN PIE: LOGOS INSTITUCIONES -->
-                <div class="export-section">
-                    <h4><i class="fas fa-building"></i> Logos de Instituciones en el Pie</h4>
-                    <div class="instituciones-logos-list" id="institucionesLogosList">
-                        <div class="loading-spinner">Cargando instituciones...</div>
-                    </div>
-                    <div class="select-all-row">
-                        <label>
-                            <input type="checkbox" id="selectAllLogos" checked> Seleccionar todos
-                        </label>
-                        <span id="logosCount" class="logos-count">0 logos seleccionados</span>
-                    </div>
-                </div>
-            </form>
-        </div>
-        
-        <div class="modal-export-footer">
-            <button class="btn-cancel" id="btnExportCancel">Cancelar</button>
-            <button class="btn-generate" id="btnGeneratePdf">
-                <i class="fas fa-download"></i> Generar PDF
-            </button>
-        </div>
-    </div>
-</div>
+
 <footer>
     <strong>© 2026 UES San José del Rincón</strong><br>
     Gestión de la jornada académica y cultural<br>
@@ -330,7 +258,7 @@
 <script src="/static/js/global.js"></script>
 <script src="/static/js/menu.js"></script>
 <script src="/static/js/calendario.js"></script>
-<script src="/static/js/export_pdf.js"></script>
+
 
 </body>
 </html>

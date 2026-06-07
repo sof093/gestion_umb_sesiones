@@ -93,14 +93,14 @@
         </button>
         <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
         <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
-        <a href="{{ url_for('auth.logout') }}" class="btn-icon" title="Cerrar sesión">cerrar sesión</a>
+        <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar sesión">cerrar sesión</a>
     </div>
 </nav>
 
 <div class="hero">
     <h1 class="hero-title">Editar sesión</h1>
     <div>
-        <a href="{{ url_for('admin.admin_sesiones') }}" class="btn-nueva btn-volver" id="btnVolverListado">← Volver a sesiones</a>
+        <a href="{{ url_for('admin_sesiones') }}" class="btn-nueva btn-volver" id="btnVolverListado">← Volver a sesiones</a>
     </div>
 </div>
 

@@ -962,3 +962,515 @@ tbody td {
         padding: 0.5rem;
     }
 }
+
+/* Modal Exportación PDF */
+.modal-export-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.modal-export-container {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-export-header {
+    background: linear-gradient(135deg, var(--verde-oscuro), var(--verde));
+    color: white;
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-export-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.modal-export-header h3 i {
+    margin-right: 10px;
+}
+
+.modal-export-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.modal-export-close:hover {
+    transform: scale(1.1);
+}
+
+.modal-export-body {
+    padding: 25px;
+    max-height: calc(85vh - 130px);
+    overflow-y: auto;
+}
+
+.export-section {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 20px;
+}
+
+.export-section h4 {
+    color: var(--verde-oscuro);
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.logos-encabezado-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.logo-upload-card {
+    border: 2px dashed #ccc;
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.logo-upload-card:hover {
+    border-color: var(--dorado);
+}
+
+.logo-upload-card label {
+    font-weight: 600;
+    color: var(--verde-oscuro);
+    display: block;
+    margin-bottom: 10px;
+}
+
+.logo-preview {
+    width: 120px;
+    height: 120px;
+    margin: 10px auto;
+    background: #f5f5f5;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid #ddd;
+}
+
+.logo-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.logo-preview i {
+    font-size: 40px;
+    color: #999;
+}
+
+.logo-upload-input {
+    display: block;
+    margin: 10px auto;
+    font-size: 0.8rem;
+}
+
+.btn-clear-logo {
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    margin-top: 5px;
+}
+
+.btn-clear-logo:hover {
+    background: #d32f2f;
+}
+
+.instituciones-logos-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+.institucion-logo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.institucion-logo-item:hover {
+    background: #f9f9f9;
+    border-color: var(--dorado);
+}
+
+.institucion-logo-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.institucion-logo-item .logo-thumb {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 5px;
+    background: white;
+}
+
+.institucion-logo-item .institucion-nombre {
+    flex: 1;
+    font-size: 0.85rem;
+    color: #333;
+    word-break: break-word;
+}
+
+.select-all-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f0f7ec;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.select-all-row label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.logos-count {
+    color: var(--verde-oscuro);
+    font-weight: bold;
+}
+
+.help-text {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 10px;
+}
+
+.modal-export-footer {
+    padding: 20px 25px;
+    background: #f9f9f9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn-generate {
+    background: linear-gradient(135deg, var(--verde-oscuro), var(--verde));
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.2s;
+}
+
+.btn-generate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-cancel {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    padding: 12px 24px;
+    border-radius: 30px;
+    cursor: pointer;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .logos-encabezado-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .instituciones-logos-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Asegurar que las imágenes de logos se vean */
+.institucion-logo-item .logo-thumb {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 5px;
+    background: white;
+    display: block; /* Asegurar que se muestre */
+}
+
+/* Asegurar que el botón Generar PDF sea visible */
+.btn-generate {
+    background: linear-gradient(135deg, var(--verde-oscuro), var(--verde));
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-generate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.modal-export-footer {
+    padding: 20px 25px;
+    background: #f9f9f9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Debug: asegurar que el modal se vea correctamente */
+.modal-export-overlay {
+    z-index: 10000; /* Asegurar que esté por encima */
+}
+
+.modal-export-container {
+    z-index: 10001;
+}
+/* Asegurar que el footer del modal sea visible */
+.modal-export-footer {
+    padding: 20px 25px !important;
+    background: #f9f9f9 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 15px !important;
+    border-top: 1px solid #e0e0e0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.btn-generate {
+    background: linear-gradient(135deg, #4A7A2E, #70AC46) !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 24px !important;
+    border-radius: 30px !important;
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 14px !important;
+}
+
+.btn-cancel {
+    background: #f5f5f5 !important;
+    border: 1px solid #ddd !important;
+    padding: 12px 24px !important;
+    border-radius: 30px !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+}
+
+/* ============================================
+   MEJORAS PARA MODAL DE EXPORTACIÓN PDF
+   ============================================ */
+
+.modal-export-footer {
+    padding: 20px 25px !important;
+    background: #f9f9f9 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 15px !important;
+    border-top: 1px solid #e0e0e0 !important;
+    margin-top: 0 !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    border-radius: 0 0 20px 20px !important;
+}
+
+.btn-generate {
+    background: linear-gradient(135deg, #4A7A2E, #70AC46) !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 28px !important;
+    border-radius: 30px !important;
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-generate:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 5px 15px rgba(74, 122, 46, 0.3) !important;
+}
+
+.btn-cancel {
+    background: white !important;
+    border: 1.5px solid #ddd !important;
+    padding: 12px 28px !important;
+    border-radius: 30px !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #666 !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-cancel:hover {
+    background: #f5f5f5 !important;
+    border-color: #ccc !important;
+}
+
+/* Asegurar que el modal tenga scroll */
+.modal-export-body {
+    padding: 25px !important;
+    max-height: calc(85vh - 130px) !important;
+    overflow-y: auto !important;
+}
+
+/* Mejorar visualización de logos en la lista */
+.institucion-logo-item .logo-thumb {
+    width: 55px !important;
+    height: 55px !important;
+    object-fit: contain !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important;
+    padding: 5px !important;
+    background: white !important;
+}
+
+/* Texto del contador */
+.logos-count {
+    color: #4A7A2E !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+
+/* Mejorar visualización de logos en la lista */
+.institucion-logo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    transition: all 0.2s;
+    background: white;
+}
+
+.institucion-logo-item:hover {
+    background: #f9f9f9;
+    border-color: var(--dorado);
+}
+
+.logo-thumb-container {
+    position: relative;
+    width: 55px;
+    height: 55px;
+    flex-shrink: 0;
+}
+
+.logo-thumb {
+    width: 55px;
+    height: 55px;
+    object-fit: contain;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 5px;
+    background: white;
+}
+
+.logo-placeholder {
+    width: 55px;
+    height: 55px;
+    background: #f5f5f5;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #999;
+}
+
+.institucion-nombre {
+    flex: 1;
+    font-size: 0.85rem;
+    color: #333;
+    word-break: break-word;
+    font-weight: 500;
+}
+
+.institucion-logo-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+}

@@ -884,54 +884,30 @@
      NAVBAR RESPONSIVO - ALUMNO AGENDA
 ============================================================ -->
 <nav class="navbar">
-    <!-- Logo -->
-    <div class="navbar-brand">UES San José del Rincón</div>
+    <span class="navbar-brand">UES San José del Rincón</span>
     
-    <!-- Espacio flexible (empuja elementos a la derecha) -->
-    <div class="navbar-spacer"></div>
-    
-    <!-- ACCIONES SIEMPRE VISIBLES -->
-    <div class="navbar-actions">
-        <button class="btn-icon-nav" id="themeToggle" title="Cambiar tema">
-            <i class="fas fa-moon" id="themeIcon"></i>
-        </button>
-        <div class="user-chip">
-            <div class="avatar" id="navAvatar"></div>
-            <span class="user-name" id="navNombre"></span>
-        </div>
-        <a href="{{ url_for('auth.logout') }}" class="btn-icon-nav" id="logoutBtn" title="Cerrar sesión">
-            <i class="fas fa-sign-out-alt"></i>
-        </a>
-    </div>
-    
-    <!-- Botón hamburguesa (solo visible en móvil) -->
     <button class="navbar-toggle" id="navbarToggle" aria-label="Menú">
         <i class="fas fa-bars"></i>
     </button>
     
-    <!-- Menú colapsable (solo enlaces de navegación) -->
     <div class="navbar-collapse" id="navbarCollapse">
-        <a href="{{ url_for('alumno.alumno_dashboard') }}" class="nav-link-pill">
-            <i class="fas fa-calendar-alt"></i> Inicio
-        </a>
-        <a href="{{ url_for('alumno.alumno_agenda') }}" class="nav-link-pill">
-            <i class="fas fa-calendar-check"></i> Mi Agenda
-        </a>
-        <a href="{{ url_for('alumno.alumnos_ponentes') }}" class="nav-link-pill">
-            <i class="fas fa-chalkboard-user"></i> Ver Ponentes
-        </a>
+        <div class="navbar-right">
+            <a href="{{ url_for('alumno_dashboard') }}" class="nav-link-pill">
+                <i class="fas fa-home"></i> Inicio
+            </a>
+            <button class="btn-icon-nav" id="themeToggle" title="Cambiar tema">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+            <div class="user-chip">
+                <div class="avatar" id="navAvatar">A</div>
+                <span class="user-name" id="navNombre">Alumno</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn-icon-nav" id="logoutBtn" title="Cerrar sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
     </div>
 </nav>
-
-<!-- Datos del usuario para el avatar -->
-<script>
-    window.USUARIO = {
-        nombre: {{ usuario.nombre if usuario else '' | tojson }},
-        apellido_paterno: {{ usuario.apellido_paterno if usuario else '' | tojson }},
-        apellido_materno: {{ usuario.apellido_materno if usuario else '' | tojson }}
-    };
-    window.NOMBRE_ALUMNO = {{ nombre | tojson }};
-</script>
 
 <!-- ============================================================
      HERO
@@ -979,7 +955,7 @@
             <i class="fas fa-calendar-plus"></i>
             <h3>Tu agenda está vacía</h3>
             <p>Explora las sesiones disponibles e inscríbete usando el ❤ en las tarjetas</p>
-            <a href="{{ url_for('alumno.alumno_dashboard') }}"><i class="fas fa-search"></i> Ver sesiones</a>
+            <a href="{{ url_for('alumno_dashboard') }}"><i class="fas fa-search"></i> Ver sesiones</a>
         </div>
     </div>
 </div>
@@ -1201,7 +1177,7 @@ function renderLista() {
                 <i class="fas fa-calendar-plus"></i>
                 <h3>Tu agenda está vacía</h3>
                 <p>Explora las sesiones disponibles e inscríbete usando el ❤ en las tarjetas</p>
-                <a href="{{ url_for('alumno.alumno_dashboard') }}"><i class="fas fa-search"></i> Ver sesiones</a>
+                <a href="{{ url_for('alumno_dashboard') }}"><i class="fas fa-search"></i> Ver sesiones</a>
             </div>`;
         return;
     }

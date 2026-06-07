@@ -84,46 +84,92 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// === NAVBAR RESPONSIVO (MENÚ HAMBURGUESA) ===
+
+// En global_alumno.js
+function actualizarAvatar() {
+    const avatarEl = document.getElementById('navAvatar');
+    const nombreEl = document.getElementById('navNombre');
+    
+    if (window.USUARIO && window.USUARIO.nombre) {
+        // Mostrar nombre completo en desktop
+        if (nombreEl) {
+            nombreEl.textContent = `${window.USUARIO.nombre} ${window.USUARIO.apellido_paterno || ''}`;
+        }
+        
+        // Mostrar iniciales en el avatar
+        if (avatarEl) {
+            const inicial1 = window.USUARIO.nombre ? window.USUARIO.nombre.charAt(0).toUpperCase() : '';
+            const inicial2 = window.USUARIO.apellido_paterno ? window.USUARIO.apellido_paterno.charAt(0).toUpperCase() : '';
+            avatarEl.textContent = inicial1 + inicial2;
+        }
+    }
+}
+
+// === NAVBAR RESPONSIVO ===
 document.addEventListener('DOMContentLoaded', function() {
     const navbarToggle = document.getElementById('navbarToggle');
     const navbarCollapse = document.getElementById('navbarCollapse');
     
+    // Solo aplicar comportamiento móvil si el ancho es <= 768px
+    function isMobile() {
+        return window.innerWidth <= 768;
+    }
+    
     if (navbarToggle && navbarCollapse) {
-        navbarToggle.addEventListener('click', () => {
-            navbarCollapse.classList.toggle('open');
-            
-            const icon = navbarToggle.querySelector('i');
-            if (navbarCollapse.classList.contains('open')) {
-                icon.classList.remove('fa-bars');
-                icon.classList.add('fa-times');
-            } else {
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
+        navbarToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isMobile()) {
+                navbarCollapse.classList.toggle('open');
+                
+                const icon = navbarToggle.querySelector('i');
+                if (navbarCollapse.classList.contains('open')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                } else {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
             }
         });
         
-        // Cerrar menú al hacer clic en un enlace
-        document.querySelectorAll('.nav-link-pill, .btn-icon-nav').forEach(link => {
+        // Cerrar menú al hacer clic en un enlace (solo en móvil)
+        const navLinks = navbarCollapse.querySelectorAll('.nav-link-pill');
+        navLinks.forEach(link => {
             link.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
+                if (isMobile() && navbarCollapse.classList.contains('open')) {
                     navbarCollapse.classList.remove('open');
                     const icon = navbarToggle.querySelector('i');
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
+                    if (icon) {
+                        icon.classList.remove('fa-times');
+                        icon.classList.add('fa-bars');
+                    }
                 }
             });
         });
     }
     
-    // Cerrar menú al redimensionar a desktop
+    // Cerrar menú al redimensionar
     window.addEventListener('resize', () => {
-        if (window.innerWidth > 768 && navbarCollapse) {
+        if (!isMobile() && navbarCollapse) {
             navbarCollapse.classList.remove('open');
             const icon = navbarToggle?.querySelector('i');
             if (icon) {
                 icon.classList.remove('fa-times');
                 icon.classList.add('fa-bars');
+            }
+        }
+    });
+    
+    // Cerrar menú al hacer clic fuera (solo en móvil)
+    document.addEventListener('click', function(event) {
+        if (isMobile() && navbarCollapse && navbarCollapse.classList.contains('open')) {
+            if (navbarToggle && !navbarToggle.contains(event.target) && !navbarCollapse.contains(event.target)) {
+                navbarCollapse.classList.remove('open');
+                const icon = navbarToggle.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
             }
         }
     });

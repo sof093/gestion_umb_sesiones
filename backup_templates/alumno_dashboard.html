@@ -21,43 +21,29 @@
 <!-- ============================================================
      NAVBAR
 ============================================================ -->
-<!-- ============================================================
-     NAVBAR
-============================================================ -->
 <nav class="navbar">
-    <!-- Logo -->
-    <div class="navbar-brand">UES San José del Rincón</div>
+    <span class="navbar-brand">UES San José del Rincón</span>
     
-    <!-- Espacio flexible -->
-    <div class="navbar-spacer"></div>
-    
-    <!-- ACCIONES SIEMPRE VISIBLES (fuera del menú) -->
-    <div class="navbar-actions">
-        <button class="btn-icon-nav" id="themeToggle" title="Cambiar tema">
-            <i class="fas fa-moon" id="themeIcon"></i>
-        </button>
-        <div class="user-chip">
-            <div class="avatar" id="navAvatar"></div>
-            <span class="user-name" id="navNombre"></span>
-        </div>
-        <a href="{{ url_for('auth.logout') }}" class="btn-icon-nav" id="logoutBtn" title="Cerrar sesión">
-            <i class="fas fa-sign-out-alt"></i>
-        </a>
-    </div>
-    
-    <!-- Botón hamburguesa -->
     <button class="navbar-toggle" id="navbarToggle" aria-label="Menú">
         <i class="fas fa-bars"></i>
     </button>
     
-    <!-- Menú colapsable (solo enlaces de navegación) -->
     <div class="navbar-collapse" id="navbarCollapse">
-        <a href="{{ url_for('alumno.alumno_agenda') }}" class="nav-link-pill">
-            <i class="fas fa-calendar-check"></i> Mi Agenda
-        </a>
-        <a href="{{ url_for('alumno.alumnos_ponentes') }}" class="nav-link-pill">
-            <i class="fas fa-chalkboard-user"></i> Ver Ponentes
-        </a>
+        <div class="navbar-right">
+            <a href="{{ url_for('alumno_agenda') }}" class="nav-link-pill">
+                <i class="fas fa-calendar-check"></i> Mi Agenda
+            </a>
+            <button class="btn-icon-nav" id="themeToggle" title="Cambiar tema">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+            <div class="user-chip">
+                <div class="avatar" id="navAvatar">A</div>
+                <span class="user-name" id="navNombre">Alumno</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn-icon-nav" id="logoutBtn" title="Cerrar sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
     </div>
 </nav>
 
@@ -261,40 +247,7 @@
     Jornada académica y cultural<br>
     Todos los derechos reservados.
 </footer>
-<!-- ============================================================
-     DATOS DEL USUARIO
-============================================================ -->
-<script>
-    // Datos del usuario logueado
-    window.USUARIO = {
-        nombre: {{ usuario.nombre if usuario else '' | tojson }},
-        apellido_paterno: {{ usuario.apellido_paterno if usuario else '' | tojson }},
-        apellido_materno: {{ usuario.apellido_materno if usuario else '' | tojson }},
-        email: {{ usuario.email if usuario else '' | tojson }}
-    };
-    
-    // También mantener NOMBRE_ALUMNO por compatibilidad
-    window.NOMBRE_ALUMNO = {{ nombre | tojson }};
-    
-    // Datos de sesiones
-    window.SESIONES_DATA = {
-        {% for s in sesiones %}
-        {{ s.id_sesion }}: {
-            titulo: {{ (s.nombre_de_sesion or 'Sin nombre') | tojson }},
-            tipo: {{ (s.tipo or '') | tojson }},
-            ponente: {{ ((s.nombre_ponente or '') ~ ' ' ~ (s.apellido_paterno or '') ~ ' ' ~ (s.apellido_materno or '')) | trim | tojson }},
-            iniciales: {{ (((s.nombre_ponente or 'X')[0] | upper) ~ ((s.apellido_paterno or 'X')[0] | upper)) | tojson }},
-            perfil: {{ (s.perfil_profesional or '') | tojson }},
-            bio: {{ (s.biografia or '') | tojson }},
-            escenario: {{ (s.escenario_nombre or 'N/A') | tojson }},
-            cupo: {{ s.cupo_audiencia or 0 }},
-            fecha: {% if s.fecha and s.fecha.strftime is defined %}{{ s.fecha.strftime('%d/%m/%Y') | tojson }}{% else %}{{ (s.fecha | string) | tojson }}{% endif %},
-            inicio: {% if s.hora_inicio and s.hora_inicio.strftime is defined %}{{ s.hora_inicio.strftime('%I:%M %p') | tojson }}{% else %}{{ (s.hora_inicio | string if s.hora_inicio else 'N/A') | tojson }}{% endif %},
-            fin: {% if s.hora_fin and s.hora_fin.strftime is defined %}{{ s.hora_fin.strftime('%I:%M %p') | tojson }}{% else %}{{ (s.hora_fin | string if s.hora_fin else 'N/A') | tojson }}{% endif %}
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-    };
-</script>
+
 <!-- ============================================================
      SCRIPTS
 ============================================================ -->
@@ -327,39 +280,35 @@
         // 1. Prevenir que la página se guarde en el historial de vuelta
         if (window.performance && window.performance.navigation.type === 2) {
             // La página vino del botón atrás - redirigir inmediatamente
-            window.location.replace('/auth/login');
+            window.location.replace('/login');
             throw new Error('Bloqueado por navegación atrás');
         }
         
         // 2. Verificar sesión de forma SÍNCRONA (más rápido que fetch)
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', '/auth/check-session', false);  // false = síncrono
+        xhr.open('GET', '/check-session', false);  // false = síncrono
         xhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
         xhr.send(null);
         
         if (xhr.status === 401) {
-            window.location.replace('/auth/login');
+            window.location.replace('/login');
         } else {
             try {
                 var data = JSON.parse(xhr.responseText);
                 if (!data.authenticated) {
-                    window.location.replace('/auth/login');
+                    window.location.replace('/login');
                 }
             } catch(e) {
-                window.location.replace('/auth/login');
+                window.location.replace('/login');
             }
         }
         
         // 3. Romper completamente el historial
         history.pushState(null, null, location.href);
         window.addEventListener('popstate', function() {
-            window.location.replace('/auth/login');
+            window.location.replace('/login');
         });
     })();
 </script>
-
-// En tu template, pasa los datos reales del usuario
-
-
 </body>
 </html>

@@ -87,7 +87,7 @@ function rangoLabel(ev) {
 
 async function cargarEventos() {
   try {
-    const res = await fetch("/api/eventos");
+    const res = await fetch("/admin/api/eventos");
     CalState.eventos = await res.json();
     renderSelectEventos();
 
@@ -133,9 +133,9 @@ async function seleccionarEvento(idEvento) {
     console.log("ID Evento seleccionado:", idEvento);
     
     const [infoRes, sesRes, confRes] = await Promise.all([
-      fetch(`/api/eventos/${idEvento}/info`),
-      fetch(`/api/eventos/${idEvento}/sesiones`),
-      fetch(`/api/eventos/${idEvento}/conflictos`),
+      fetch(`/admin/api/eventos/${idEvento}/info`),
+      fetch(`/admin/api/eventos/${idEvento}/sesiones`),
+      fetch(`/admin/api/eventos/${idEvento}/conflictos`),
     ]);
     
     console.log("Info response status:", infoRes.status);
@@ -393,7 +393,7 @@ async function guardarEvento() {
   const payload = { nombre, fecha_inicio: fi, fecha_fin: ff, descripcion: desc, activar };
 
   try {
-    const url = idEvento ? `/api/eventos/${idEvento}` : "/api/eventos";
+    const url = idEvento ? `/admin/api/eventos/${idEvento}` : "/admin/api/eventos";
     const method = idEvento ? "PUT" : "POST";
     const res = await fetch(url, {
       method,
@@ -478,7 +478,7 @@ async function activarEvento() {
     
     if (result.isConfirmed) {
         try {
-            const res = await fetch(`/api/eventos/${evento.id_evento}/activar`, {
+            const res = await fetch(`/admin/api/eventos/${evento.id_evento}/activar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -525,7 +525,7 @@ async function publicarEvento() {
     if (result.isConfirmed) {
         try {
             // ✅ CORREGIDO: fetch con la sintaxis correcta
-            const res = await fetch(`/api/eventos/${evento.id_evento}/publicar`, {
+            const res = await fetch(`/admin/api/eventos/${evento.id_evento}/publicar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ publicado: nuevoEstado })

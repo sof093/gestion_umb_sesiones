@@ -59,20 +59,38 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
     padding: 0.75rem 1rem;
-    gap: 0.75rem;
     box-shadow: 0 2px 12px rgba(0,0,0,.25);
+    gap: 0.75rem;
+    flex-wrap: wrap;
 }
 
+/* Logo */
 .navbar-brand {
     font-family: 'Playfair Display', serif;
     font-size: 1rem;
     color: #fff;
-    white-space: nowrap;
     letter-spacing: .3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
 }
 
+/* Espaciador flexible */
+.navbar-spacer {
+    flex: 1;
+}
+
+/* Acciones siempre visibles (tema, avatar, logout) */
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* Botón hamburguesa - oculto en desktop */
 .navbar-toggle {
     display: none;
     background: rgba(255,255,255,.1);
@@ -84,24 +102,49 @@ body {
     cursor: pointer;
     font-size: 1.2rem;
     transition: background .2s;
+    flex-shrink: 0;
 }
 
 .navbar-toggle:hover {
     background: rgba(255,255,255,.2);
 }
 
+/* Menú colapsable - visible en desktop */
 .navbar-collapse {
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
 
-.navbar-right {
+/* Enlaces de navegación */
+.nav-link-pill {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: .4rem;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 20px;
+    color: #fff;
+    font-size: .82rem;
+    font-weight: 500;
+    padding: .35rem .9rem;
+    text-decoration: none;
+    transition: background .2s, border-color .2s;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
+.nav-link-pill:hover {
+    background: rgba(255,255,255,.2);
+}
+
+.nav-link-pill.active {
+    background: var(--dorado);
+    color: var(--verde-oscuro);
+    border-color: var(--dorado);
+}
+
+/* User chip */
 .user-chip {
     display: flex;
     align-items: center;
@@ -156,33 +199,158 @@ body {
     background: rgba(255,255,255,.2);
 }
 
-.nav-link-pill {
-    display: flex;
-    align-items: center;
-    gap: .4rem;
-    background: rgba(255,255,255,.12);
-    border: 1px solid rgba(255,255,255,.2);
-    border-radius: 20px;
-    color: #fff;
-    font-size: .82rem;
-    font-weight: 500;
-    padding: .35rem .9rem;
-    text-decoration: none;
-    transition: background .2s, border-color .2s;
-    white-space: nowrap;
-    flex-shrink: 0;
+/* ========== RESPONSIVE MÓVIL ========== */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 0.75rem;
+        gap: 0.5rem;
+    }
+    
+    /* Logo más pequeño */
+    .navbar-brand {
+        font-size: 0.8rem;
+        max-width: 130px;
+    }
+    
+    /* Espaciador */
+    .navbar-spacer {
+        flex: 1;
+    }
+    
+    /* Mostrar botón hamburguesa */
+    .navbar-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Ocultar menú colapsable en móvil por defecto */
+    .navbar-collapse {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        background: var(--verde-oscuro);
+        padding: 1rem;
+        border-radius: 12px;
+        margin-top: 0.5rem;
+        border-top: 1px solid rgba(255,255,255,.1);
+        order: 3;
+    }
+    
+    /* Mostrar menú cuando tiene clase open */
+    .navbar-collapse.open {
+        display: flex;
+    }
+    
+    /* Enlaces dentro del menú móvil - ocupan todo el ancho */
+    .navbar-collapse .nav-link-pill {
+        display: flex;
+        width: 100%;
+        justify-content: center;
+        padding: 0.6rem;
+        white-space: normal;
+    }
+    
+    /* Reducir tamaño de acciones */
+    .navbar-actions {
+        gap: 0.3rem;
+    }
+    
+    /* Ocultar nombre de usuario en móvil */
+    .user-name {
+        display: none;
+    }
+    
+    .avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+    }
+    
+    .btn-icon-nav {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
 }
 
-.nav-link-pill:hover {
-    background: rgba(255,255,255,.2);
+/* Móviles muy pequeños */
+@media (max-width: 480px) {
+    .navbar-brand {
+        font-size: 0.7rem;
+        max-width: 100px;
+    }
+    
+    .navbar-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+    
+    .avatar {
+        width: 26px;
+        height: 26px;
+        font-size: 0.7rem;
+    }
+    
+    .btn-icon-nav {
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
+    }
 }
 
-.nav-link-pill.active {
-    background: var(--dorado);
-    color: var(--verde-oscuro);
-    border-color: var(--dorado);
+/* ========== CORRECCIÓN PARA DESKTOP ========== */
+/* Esto asegura que en pantallas grandes se vea todo el menú */
+@media (min-width: 769px) {
+    /* Mostrar menú colapsable normalmente */
+    .navbar-collapse {
+        display: flex !important;
+        position: static !important;
+        background: transparent !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border-top: none !important;
+        flex-direction: row !important;
+        width: auto !important;
+        order: 1 !important;
+        margin-top: 0 !important;
+    }
+    
+    /* Mostrar todos los enlaces */
+    .navbar-collapse .nav-link-pill {
+        display: flex !important;
+    }
+    
+    /* Ocultar botón hamburguesa */
+    .navbar-toggle {
+        display: none !important;
+    }
+    
+    /* Ocultar espaciador en desktop (opcional) */
+    .navbar-spacer {
+        display: flex;
+    }
+    
+    /* Reordenar navbar para desktop */
+    .navbar-brand {
+        order: 0;
+    }
+    
+    .navbar-spacer {
+        order: 1;
+    }
+    
+    .navbar-collapse {
+        order: 2;
+    }
+    
+    .navbar-actions {
+        order: 3;
+    }
 }
-
 /* ========== HERO ========== */
 .hero {
     background: var(--verde-oscuro);
@@ -247,74 +415,3 @@ footer strong {
     color: #fff;
 }
 
-/* ========== RESPONSIVE ========== */
-@media (max-width: 768px) {
-    .navbar {
-        padding: 0.75rem;
-    }
-    
-    .navbar-brand {
-        font-size: 0.9rem;
-    }
-    
-    .navbar-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        order: 1;
-    }
-    
-    .navbar-collapse {
-        display: none;
-        width: 100%;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.5rem;
-        order: 3;
-    }
-    
-    .navbar-collapse.open {
-        display: flex;
-    }
-    
-    .navbar-right {
-        flex-direction: column;
-        width: 100%;
-        gap: 0.5rem;
-    }
-    
-    .navbar-right .nav-link-pill,
-    .navbar-right .btn-icon-nav {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .user-chip {
-        justify-content: space-between;
-        width: 100%;
-    }
-    
-    .navbar > :not(.navbar-collapse) {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .user-name {
-        display: none;
-    }
-    
-    .navbar-brand {
-        font-size: 0.8rem;
-    }
-    
-    .hero {
-        padding: 2rem 1rem 2.5rem;
-    }
-    
-    .hero h1 {
-        font-size: 1.3rem;
-    }
-}

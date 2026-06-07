@@ -1,0 +1,155 @@
+<!--admin_dashboard.html-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <!-- PROTECCIÓN EXTREMA CONTRA CACHÉ -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, private, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta http-equiv="Clear-Site-Data" content="cache">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Dashboard | UES San José del Rincón</title>
+    <!-- Fuentes -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style_admin_dashboard.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <!-- BARRA DE NAVEGACIÓN -->
+
+<nav class="navbar">
+    <!-- Logo / Título (izquierda) -->
+    <div class="navbar-logo">
+        <span class="navbar-brand">UES San José del Rincón</span>
+    </div>
+    
+    <!-- Botón hamburguesa (solo visible en móvil) -->
+    <button class="menu-toggle" id="menuToggle">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    
+    <!-- Enlaces de navegación (menú) -->
+    <div class="nav-links" id="navLinks">
+        
+        <a href="/admin/sesiones" class="nav-link">Sesiones</a>
+        <a href="/admin/usuarios" class="nav-link" data-page="usuarios">Usuarios</a>
+    </div>
+    
+    <!-- Sección derecha -->
+    <div class="navbar-right">
+        <button class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+        <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
+        <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
+        <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">
+        <i class="fas fa-sign-out-alt"></i>
+    </button>  
+    </div>
+</nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main-container">
+        <h1 class="page-title">Gestión de la jornada académica y cultural</h1>
+
+        <div class="content-grid">
+            <!-- Recuadro de la imagen -->
+            <div class="image-card">
+                <img src="/static/img/umb1.jpg" 
+                     alt="Universidad San José del Rincón" 
+                     class="university-image"
+                     onerror="this.src='https://placehold.co/875x477/1a3a2a/white?text=UES+San+Jos%C3%A9+del+Rinc%C3%B3n'">
+            </div>
+
+            <!-- Recuadro de total de sesiones -->
+            <div class="stats-card">
+                <div class="stats-title">
+                    <i class="fas fa-calendar-alt" style="color: #D0A612; margin-right: 8px;"></i>
+                    Total de sesiones registradas
+                </div>
+                <div class="stats-number">{{ total_sesiones }}</div>
+                <div class="stats-label">Sesiones activas en el sistema</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <strong>© 2026 UES San José del Rincón</strong>
+        <p>Gestión de la jornada académica y cultural<br>Todos los derechos reservados.</p>
+    </footer>
+    
+<script src="/static/js/global.js"></script>
+<script src="/static/js/menu.js"></script>
+<script>
+    // Protección adicional específica para esta página
+    (function() {
+        // Verificar sesión inmediatamente
+        fetch('/check-session', {
+            cache: 'no-store',
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.replace('/login');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.authenticated) {
+                window.location.replace('/login');
+            }
+        })
+        .catch(() => {
+            window.location.replace('/login');
+        });
+    })();
+</script>
+<script>
+    // BLOQUEO TOTAL PARA EDGE - Esto se ejecuta ANTES de que la página se muestre
+    (function() {
+        // 1. Prevenir que la página se guarde en el historial de vuelta
+        if (window.performance && window.performance.navigation.type === 2) {
+            // La página vino del botón atrás - redirigir inmediatamente
+            window.location.replace('/login');
+            throw new Error('Bloqueado por navegación atrás');
+        }
+        
+        // 2. Verificar sesión de forma SÍNCRONA (más rápido que fetch)
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/check-session', false);  // false = síncrono
+        xhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
+        xhr.send(null);
+        
+        if (xhr.status === 401) {
+            window.location.replace('/login');
+        } else {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (!data.authenticated) {
+                    window.location.replace('/login');
+                }
+            } catch(e) {
+                window.location.replace('/login');
+            }
+        }
+        
+        // 3. Romper completamente el historial
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', function() {
+            window.location.replace('/login');
+        });
+    })();
+</script>
+</body>
+</html>

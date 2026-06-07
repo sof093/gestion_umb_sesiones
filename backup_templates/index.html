@@ -55,7 +55,7 @@
                     {% endwith %}
                 </div>
 
-                <form method="POST" action="{{ url_for('auth.login') }}" autocomplete="off">
+                <form method="POST" action="{{ url_for('login') }}" autocomplete="off">
                     <div class="form-group">
                         <label>Correo electrónico</label>
                         <input type="email" name="email" class="form-control" 
@@ -74,7 +74,7 @@
                 </form>
 
                 <div class="login-links">
-                    <a href="{{ url_for('auth.olvide_password') }}">¿Olvidaste tu contraseña?</a>
+                    <a href="{{ url_for('olvide_password') }}">¿Olvidaste tu contraseña?</a>
                 </div>
             </div>
         </div>
