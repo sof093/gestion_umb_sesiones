@@ -31,7 +31,7 @@ def login():
             if admin and check_password_hash(admin['password'], password):
                 session.clear()
                 session['user_id'] = admin['id_control']
-                session['user_nombre'] = admin['nombre_admin']
+                session['user_nombre'] = f"{admin['nombre_admin']} {admin['apellido_paterno']}"
                 session['user_email'] = admin['email']
                 session['user_tipo'] = 'admin'
                 session['admin_logged'] = True

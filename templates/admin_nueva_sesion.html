@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/static/css/admin_nueva-editar_sesion.css">
 <link rel="stylesheet" href="/static/css/base.css">
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
     /* Estilos adicionales para disponibilidad */
     .availability-section {
@@ -85,19 +86,33 @@
 <body>
 
 <nav class="navbar">
-  <span class="navbar-brand">UES San José del Rincón</span>
-  <div class="navbar-right">
-    <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
-    <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
-    <a href="{{ url_for('auth.logout') }}" class="btn-icon" title="Cerrar sesión">cerrar sesión</a>
-  </div>
+    <div class="navbar-logo">
+        <span class="navbar-brand">UES San José del Rincón</span>
+    </div>
+    
+    <div class="navbar-right">
+        <button class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+        
+        <div class="admin-info">
+            <i class="fas fa-user-shield"></i>
+            <span class="admin-name">{{ session.get('user_nombre', 'Administrador') }}</span>
+        </div>
+        
+        <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">
+            <i class="fas fa-sign-out-alt"></i>
+        </button>  
+    </div>
 </nav>
 
 <div class="hero">
-  <h1 class="hero-title">Registrar nueva sesión</h1>
-  <div>
-    <a href="{{ url_for('admin.admin_sesiones') }}" class="btn-nueva btn-volver" id="btnVolverListado">← Volver a sesiones</a>
-  </div>
+    <h1 class="hero-title">Registrar nueva sesión</h1>
+    <div class="hero-buttons">
+        <a href="{{ url_for('admin.admin_sesiones') }}" class="btn-volver">
+            <i class="fas fa-arrow-left"></i> Volver a sesiones
+        </a>
+    </div>
 </div>
 
 <main class="main">

@@ -40,22 +40,32 @@
     
     <!-- Enlaces de navegación (menú) -->
     <div class="nav-links" id="navLinks">
-        
-        <a href="/admin/sesiones" class="nav-link">Sesiones</a>
-        <a href="/admin/usuarios" class="nav-link" data-page="usuarios">Usuarios</a>
+        <a href="/admin/sesiones" class="nav-link">
+    <i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>
+    Sesiones
+</a>
+<a href="/admin/usuarios" class="nav-link" data-page="usuarios">
+    <i class="fas fa-users" style="margin-right: 8px;"></i>
+    Usuarios
+</a>
     </div>
     
     <!-- Sección derecha -->
-    <div class="navbar-right">
-        <button class="theme-toggle" id="themeToggle">
-            <i class="fas fa-moon"></i>
-        </button>
-        <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
-        <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
-        <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">
+<!-- Sección derecha -->
+<div class="navbar-right">
+    <button class="theme-toggle" id="themeToggle">
+        <i class="fas fa-moon"></i>
+    </button>
+    
+    <div class="admin-info">
+        <i class="fas fa-user-shield"></i>
+        <span class="admin-name">{{ session.get('user_nombre', 'Administrador') }}</span>
+    </div>
+    
+    <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">
         <i class="fas fa-sign-out-alt"></i>
     </button>  
-    </div>
+</div>
 </nav>
 
     <!-- CONTENIDO PRINCIPAL -->

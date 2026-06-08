@@ -21,19 +21,30 @@
         <span></span><span></span><span></span>
     </button>
     <div class="nav-links" id="navLinks">
-        <a href="/admin/dashboard" class="nav-link">Inicio</a>
-        <a href="/admin/sesiones" class="nav-link">Sesiones</a>
-    </div>
+    <a href="/admin/dashboard" class="nav-link">
+        <i class="fas fa-home" style="margin-right: 8px;"></i>
+        Inicio
+    </a>
+    <a href="/admin/sesiones" class="nav-link">
+        <i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>
+        Sesiones
+    </a>
+
+</div>
     <div class="navbar-right">
-        <button class="theme-toggle" id="themeToggle">
-            <i class="fas fa-moon"></i>
-        </button>
-        <span class="admin-label">Admin: {{ session.get('admin_nombre', '') }}</span>
-        <div class="avatar-placeholder">{{ session.get('admin_nombre', 'A')[0]|upper }}</div>
-        <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">
-        <i class="fas fa-sign-out-alt"></i>
-        </button>  
+    <button class="theme-toggle" id="themeToggle">
+        <i class="fas fa-moon"></i>
+    </button>
+    
+    <div class="admin-info">
+        <i class="fas fa-user-shield"></i>
+        <span class="admin-name">{{ session.get('user_nombre', 'Administrador') }}</span>
     </div>
+    
+    <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">
+        <i class="fas fa-sign-out-alt"></i>
+    </button>  
+</div>
 </nav>
 
 <div class="hero">

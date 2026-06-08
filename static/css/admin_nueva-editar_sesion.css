@@ -482,3 +482,158 @@ input::-webkit-validation-bubble-arrow-clipper {
 input:invalid {
     box-shadow: none;
 }
+/* Admin-info */
+.admin-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(209, 166, 18, 0.15);
+    padding: 0.5rem 1.2rem;
+    border-radius: 40px;
+    margin: 0 10px;
+    transition: all 0.3s ease;
+}
+
+.admin-info i {
+    color: var(--dorado);
+    font-size: 1rem;
+}
+
+.admin-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: white !important;
+}
+
+.admin-info:hover {
+    background: var(--dorado);
+    transform: translateY(-1px);
+}
+
+.admin-info:hover i,
+.admin-info:hover .admin-name {
+    color: #1a3a2a !important;
+}
+
+.dark-mode .admin-info {
+    background: rgba(209, 166, 18, 0.25);
+}
+
+.dark-mode .admin-name {
+    color: white !important;
+}
+
+.dark-mode .admin-info:hover {
+    background: var(--dorado);
+}
+
+.dark-mode .admin-info:hover i,
+.dark-mode .admin-info:hover .admin-name {
+    color: #1a1a1a !important;
+}
+
+.btn-icon {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.btn-icon:hover {
+    background: var(--dorado);
+    color: #1a3a2a;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Botón Volver - SIEMPRE VISIBLE */
+.btn-volver {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--dorado);  /* Fondo dorado siempre visible */
+    color: #1a3a2a;  /* Texto oscuro */
+    padding: 0.6rem 1.5rem;
+    border-radius: 40px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.btn-volver:hover {
+    background: #b88c0c;  /* Dorado más oscuro al hover */
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.btn-volver i {
+    font-size: 0.9rem;
+}
+.hero {
+    text-align: center;
+    padding: 2rem 1rem;
+    background: linear-gradient(135deg, var(--verde-oscuro) 0%, #1a4a2a 100%);
+    color: white;
+    margin-bottom: 2rem;
+}
+
+.hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+.hero-buttons {
+    margin-top: 0.5rem;
+}
+
+/* Botón Volver - SIEMPRE VISIBLE */
+.btn-volver {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--dorado);
+    color: #1a3a2a;
+    padding: 0.7rem 1.8rem;
+    border-radius: 40px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.btn-volver:hover {
+    background: #c49b1a;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.btn-volver i {
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 1.8rem;
+    }
+    
+    .btn-volver {
+        padding: 0.5rem 1.2rem;
+        font-size: 0.9rem;
+    }
+}

@@ -3,6 +3,64 @@
    Archivo: style_admin_dashboard.css
    ============================================ */
 
+/* ============================================
+   BOTONES DE NAVEGACIÓN MÁS VISIBLES
+   ============================================ */
+
+/* Botones de navegación - estilo claro y visible */
+.nav-links .nav-link {
+    font-size: 1.2rem;
+    font-weight: 700;
+    padding: 0.75rem 1.8rem;
+    border-radius: 40px;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.15);
+    color: white !important;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: 0.5px;
+}
+
+/* Efecto al pasar el mouse */
+.nav-links .nav-link:hover {
+    background: var(--dorado);
+    color: #1a3a2a !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Modo claro (fondo blanco) - se ajusta automáticamente */
+body:not(.dark-mode) .nav-links .nav-link {
+    background: var(--verde-oscuro);
+    color: white !important;
+}
+
+body:not(.dark-mode) .nav-links .nav-link:hover {
+    background: var(--dorado);
+    color: #1a3a2a !important;
+}
+
+/* Modo oscuro */
+.dark-mode .nav-links .nav-link {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f0f0f0 !important;
+}
+
+.dark-mode .nav-links .nav-link:hover {
+    background: var(--dorado);
+    color: #1a1a1a !important;
+}
+
+/* Responsive para móvil */
+@media (max-width: 768px) {
+    .nav-links .nav-link {
+        padding: 0.6rem 1.2rem;
+        font-size: 1rem;
+        justify-content: center;
+    }
+}
 /* Contenido principal */
 .main-container {
     flex: 1;
@@ -186,5 +244,98 @@
     .footer {
         padding: 1rem;
         font-size: 0.7rem;
+    }
+}
+
+/* Avatar con nombre completo */
+.avatar-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--dorado);
+    color: #1a3a2a;
+    font-weight: bold;
+    padding: 0.3rem 1rem 0.3rem 0.5rem;
+    border-radius: 40px;
+}
+
+.avatar-initial {
+    background: rgba(0,0,0,0.2);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.avatar-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+/* Admin-info - MISMO TAMAÑO que Sesiones/Usuarios, en DORADO */
+.admin-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(209, 166, 18, 0.15);
+    padding: 0.75rem 1.8rem;  /* Mismo padding que .nav-link */
+    border-radius: 40px;
+    margin: 0 10px;
+    transition: all 0.3s ease;
+}
+
+.admin-info i {
+    color: var(--dorado);
+    font-size: 1.2rem;  /* Mismo tamaño que los íconos de navegación */
+}
+
+.admin-name {
+    font-weight: 700;
+    font-size: 1.2rem;  /* Mismo tamaño que .nav-link */
+    color: white !important;
+    letter-spacing: 0.5px;
+}
+
+/* Efecto hover */
+.admin-info:hover {
+    background: var(--dorado);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(209, 166, 18, 0.3);
+}
+
+.admin-info:hover i,
+.admin-info:hover .admin-name {
+    color: #1a3a2a;  /* Texto oscuro al hacer hover */
+}
+
+/* Modo oscuro */
+.dark-mode .admin-info {
+    background: rgba(209, 166, 18, 0.25);
+}
+
+.dark-mode .admin-name {
+    color: #f0f0f0;
+}
+
+.dark-mode .admin-info:hover {
+    background: var(--dorado);
+}
+
+.dark-mode .admin-info:hover i,
+.dark-mode .admin-info:hover .admin-name {
+    color: #1a1a1a;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .admin-info {
+        padding: 0.6rem 1.2rem;
+    }
+    
+    .admin-name {
+        font-size: 1rem;
     }
 }
