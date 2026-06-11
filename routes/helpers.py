@@ -122,7 +122,8 @@ def enviar_credenciales_usuario(nombre, email, password_temporal, rol):
     return enviar_correo(email, asunto, cuerpo_html)
 
 def enviar_enlace_recuperacion(email, nombre, token, tipo_usuario):
-    enlace = f"http://localhost:5000/recuperar-password?token={token}&tipo={tipo_usuario}"
+    # ✅ CORRECTO: Incluye /auth/ en la ruta
+    enlace = f"http://localhost:5000/auth/recuperar-password?token={token}&tipo={tipo_usuario}"
     
     asunto = "Recuperación de contraseña - UES San José del Rincón"
     
@@ -134,11 +135,15 @@ def enviar_enlace_recuperacion(email, nombre, token, tipo_usuario):
         <h2 style="color: #1a3a2a;">Recuperación de contraseña</h2>
         <p>Hola <strong>{nombre}</strong>,</p>
         <p>Haz clic para restablecer tu contraseña:</p>
-        <a href="{enlace}" style="background: #1a3a2a; color: white; padding: 10px;">Restablecer</a>
+        <a href="{enlace}" style="background: #1a3a2a; color: white; padding: 10px; text-decoration: none; border-radius: 5px;">Restablecer contraseña</a>
+        <p>O copia este enlace en tu navegador:</p>
+        <p style="word-break: break-all; background: #f0f0f0; padding: 10px; font-size: 12px;">{enlace}</p>
         <p>Este enlace expira en 24 horas.</p>
     </body>
     </html>
     """
+    
+    return enviar_correo(email, asunto, cuerpo_html)
     
     return enviar_correo(email, asunto, cuerpo_html)
 

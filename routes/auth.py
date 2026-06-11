@@ -155,6 +155,23 @@ def olvide_password():
         
         try:
             with conexion.cursor() as cursor:
+                # PRIMERO: Verificar/Crear la tabla correctamente
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS recuperacion_password (
+                        id_recuperacion INT AUTO_INCREMENT PRIMARY KEY,
+                        usuario_id INT NOT NULL,
+                        tipo_usuario VARCHAR(10) NOT NULL,
+                        token VARCHAR(100) NOT NULL UNIQUE,
+                        fecha_solicitud DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        fecha_expiracion DATETIME NOT NULL,
+                        usado BOOLEAN DEFAULT FALSE,
+                        INDEX idx_token (token),
+                        INDEX idx_usuario (usuario_id, tipo_usuario)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """)
+                conexion.commit()
+                
+                # Buscar usuario
                 cursor.execute("SELECT * FROM administrador WHERE email = %s", (email,))
                 admin = cursor.fetchone()
                 
@@ -174,23 +191,22 @@ def olvide_password():
                     token = secrets.token_urlsafe(32)
                     fecha_expiracion = datetime.now() + timedelta(hours=24)
                     
-                    cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS recuperacion_password (
-                            id_recuperacion INT AUTO_INCREMENT PRIMARY KEY,
-                            usuario_id INT NOT NULL,
-                            tipo_usuario ENUM('admin', 'alumno') NOT NULL,
-                            token VARCHAR(100) NOT NULL UNIQUE,
-                            fecha_solicitud DATETIME DEFAULT CURRENT_TIMESTAMP,
-                            fecha_expiracion DATETIME,
-                            usado BOOLEAN DEFAULT FALSE
-                        )
-                    """)
-                    
+                    # Insertar el token
                     cursor.execute("""
                         INSERT INTO recuperacion_password (usuario_id, tipo_usuario, token, fecha_expiracion)
                         VALUES (%s, %s, %s, %s)
                     """, (usuario_id, rol_detectado, token, fecha_expiracion))
                     conexion.commit()
+                    
+                    # VERIFICAR que se guardó correctamente
+                    cursor.execute("SELECT * FROM recuperacion_password WHERE token = %s", (token,))
+                    verificar = cursor.fetchone()
+                    if verificar:
+                        print(f"✅ Token guardado correctamente: {token[:20]}...")
+                        print(f"   Usuario ID: {verificar['usuario_id']}")
+                        print(f"   Expira: {verificar['fecha_expiracion']}")
+                    else:
+                        print("❌ ERROR: No se pudo guardar el token")
                     
                     enviar_enlace_recuperacion(email, usuario_nombre, token, rol_detectado)
                     flash('Se ha enviado un enlace de recuperación a tu correo.', 'success')
@@ -198,7 +214,9 @@ def olvide_password():
                     flash('Si el correo está registrado, recibirás un enlace.', 'info')
                     
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error en olvide-password: {e}")
+            import traceback
+            traceback.print_exc()
             flash('Error al procesar la solicitud', 'error')
         finally:
             conexion.close()
@@ -213,78 +231,60 @@ def recuperar_password():
         token = request.args.get('token')
         tipo = request.args.get('tipo')
         
+        print(f"🔍 DEBUG - Parámetros recibidos:")
+        print(f"   Token: {token}")
+        print(f"   Tipo: {tipo}")
+        
         if not token or not tipo:
-            flash('Enlace inválido', 'error')
+            print("❌ Faltan parámetros")
+            flash('Enlace inválido - Faltan parámetros', 'error')
             return redirect(url_for('auth.login'))
         
         conexion = config.conectar_db()
         try:
             with conexion.cursor() as cursor:
+                # Consulta más flexible para depuración
                 cursor.execute("""
-                    SELECT * FROM recuperacion_password 
-                    WHERE token = %s AND tipo_usuario = %s AND usado = FALSE AND fecha_expiracion > NOW()
+                    SELECT *, NOW() as hora_actual 
+                    FROM recuperacion_password 
+                    WHERE token = %s AND tipo_usuario = %s AND usado = FALSE
                 """, (token, tipo))
-                if not cursor.fetchone():
+                
+                resultado = cursor.fetchone()
+                
+                if not resultado:
+                    print("❌ Token no encontrado o ya usado")
+                    # Verificar si existe pero está usado
+                    cursor.execute("SELECT * FROM recuperacion_password WHERE token = %s", (token,))
+                    existe = cursor.fetchone()
+                    if existe:
+                        print(f"   Token existe pero usado={existe['usado']}")
+                    else:
+                        print("   Token no existe en la tabla")
                     flash('El enlace ha expirado o ya fue utilizado', 'error')
                     return redirect(url_for('auth.login'))
-            return render_template('recuperar_password.html', token=token, tipo=tipo)
+                
+                # Verificar expiración
+                print(f"📅 Fecha expiración: {resultado['fecha_expiracion']}")
+                print(f"📅 Hora actual: {resultado['hora_actual']}")
+                
+                if resultado['fecha_expiracion'] < resultado['hora_actual']:
+                    print("❌ Token expirado")
+                    flash('El enlace ha expirado', 'error')
+                    return redirect(url_for('auth.login'))
+                
+                print("✅ Token válido, mostrando formulario")
+                return render_template('recuperar_password.html', token=token, tipo=tipo)
+                
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error en verificación: {e}")
+            import traceback
+            traceback.print_exc()
             flash('Error al verificar el enlace', 'error')
             return redirect(url_for('auth.login'))
         finally:
             conexion.close()
-    
-    else:  # POST
-        token = request.form.get('token')
-        tipo = request.form.get('tipo')
-        nueva_password = request.form.get('nueva_password')
-        confirmar_password = request.form.get('confirmar_password')
-        
-        if not token or not tipo or not nueva_password or not confirmar_password:
-            flash('Datos inválidos', 'error')
-            return redirect(url_for('auth.recuperar_password', token=token, tipo=tipo))
-        
-        if nueva_password != confirmar_password:
-            flash('Las contraseñas no coinciden', 'error')
-            return redirect(url_for('auth.recuperar_password', token=token, tipo=tipo))
-        
-        # Validaciones de contraseña (igual que en cambiar_password)
-        if len(nueva_password) < 8 or not re.search(r'[A-Z]', nueva_password) or not re.search(r'[0-9]', nueva_password) or not re.search(r'[!@#$%^&*]', nueva_password):
-            flash('La contraseña no cumple con los requisitos de seguridad', 'error')
-            return redirect(url_for('auth.recuperar_password', token=token, tipo=tipo))
-        
-        hashed = generate_password_hash(nueva_password)
-        conexion = config.conectar_db()
-        
-        try:
-            with conexion.cursor() as cursor:
-                cursor.execute("SELECT usuario_id, tipo_usuario FROM recuperacion_password WHERE token = %s AND usado = FALSE", (token,))
-                recuperacion = cursor.fetchone()
-                
-                if not recuperacion:
-                    flash('Token inválido', 'error')
-                    return redirect(url_for('auth.login'))
-                
-                if recuperacion['tipo_usuario'] == 'alumno':
-                    cursor.execute("UPDATE alumnos SET password = %s, primer_login = FALSE WHERE id_alumno = %s", (hashed, recuperacion['usuario_id']))
-                else:
-                    cursor.execute("UPDATE administrador SET password = %s, primer_login = FALSE WHERE id_control = %s", (hashed, recuperacion['usuario_id']))
-                
-                cursor.execute("UPDATE recuperacion_password SET usado = TRUE WHERE token = %s", (token,))
-                conexion.commit()
-                
-                flash('Contraseña restablecida exitosamente', 'success')
-                return redirect(url_for('auth.login'))
-                
-        except Exception as e:
-            conexion.rollback()
-            print(f"Error: {e}")
-            flash('Error al restablecer la contraseña', 'error')
-            return redirect(url_for('auth.login'))
-        finally:
-            conexion.close()
-
+            
 @auth_bp.route('/check-session')
 def check_session():
     response = jsonify({'authenticated': False})
