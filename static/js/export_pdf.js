@@ -21,7 +21,13 @@ class PDFExporter {
         const btnExportPdf = document.getElementById('btnExportPdf');
         if (btnExportPdf) {
             console.log('✅ Botón Exportar PDF encontrado');
-            btnExportPdf.addEventListener('click', () => this.openModal());
+            // Asegurarse de no duplicar listeners
+            btnExportPdf.replaceWith(btnExportPdf.cloneNode(true));
+            document.getElementById('btnExportPdf').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.openModal();
+            });
         } else {
             console.error('❌ Botón btnExportPdf NO encontrado');
         }
@@ -32,11 +38,16 @@ class PDFExporter {
         if (closeBtn) closeBtn.addEventListener('click', () => this.closeModal());
         if (cancelBtn) cancelBtn.addEventListener('click', () => this.closeModal());
         
-        // Generar PDF
+        // Generar PDF — solo al hacer clic explícito
         const generateBtn = document.getElementById('btnGeneratePdf');
         if (generateBtn) {
             console.log('✅ Botón Generar PDF encontrado');
-            generateBtn.addEventListener('click', () => this.generatePDF());
+            generateBtn.replaceWith(generateBtn.cloneNode(true));
+            document.getElementById('btnGeneratePdf').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.generatePDF();
+            });
         } else {
             console.error('❌ Botón btnGeneratePdf NO encontrado');
         }
@@ -54,7 +65,10 @@ class PDFExporter {
         
         // Limpiar logos
         document.querySelectorAll('.btn-clear-logo').forEach(btn => {
-            btn.addEventListener('click', (e) => this.clearLogo(btn.dataset.position));
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.clearLogo(btn.dataset.position);
+            });
         });
         
         // Cerrar con ESC
@@ -64,6 +78,14 @@ class PDFExporter {
                 this.closeModal();
             }
         });
+
+        // Cerrar al hacer clic fuera del contenedor
+        const modal = document.getElementById('modalExportPdf');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) this.closeModal();
+            });
+        }
     }
     
     async openModal() {
@@ -80,12 +102,12 @@ class PDFExporter {
         document.getElementById('exportEventoId').value = this.eventoId;
         console.log(`📅 Evento ID: ${this.eventoId}`);
         
-        // Mostrar modal ANTES de cargar datos para que el usuario vea algo
+        // Resetear formulario ANTES de mostrar
+        this.resetForm();
+        
+        // Mostrar modal
         const modal = document.getElementById('modalExportPdf');
         modal.style.display = 'flex';
-        
-        // Resetear formulario
-        this.resetForm();
         
         // Cargar instituciones del evento
         await this.loadInstituciones();
@@ -126,49 +148,46 @@ class PDFExporter {
     }
     
     renderInstitucionesList(instituciones) {
-    const container = document.getElementById('institucionesLogosList');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    instituciones.forEach((inst, index) => {
-        const div = document.createElement('div');
-        div.className = 'institucion-logo-item';
+        const container = document.getElementById('institucionesLogosList');
+        if (!container) return;
         
-        // Construir ruta correcta de la imagen
-        let imgSrc = inst.logo_path || '';
+        container.innerHTML = '';
         
-        // Intentar diferentes rutas posibles
-        const possiblePaths = [
-            imgSrc,
-            '/' + imgSrc,
-            '/static/' + imgSrc,
-            '/static/uploads/sesiones/' + imgSrc.split('/').pop(),
-            '/static/img/' + imgSrc.split('/').pop()
-        ];
-        
-        // Usar la primera ruta como intento
-        const finalSrc = possiblePaths[0];
-        
-        div.innerHTML = `
-            <input type="checkbox" class="logo-checkbox" data-id="${inst.id}" value="${inst.logo_path}" checked>
-            <div class="logo-thumb-container">
-                <img src="${finalSrc}" class="logo-thumb" 
-                     onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.logo-placeholder').style.display='flex';">
-                <div class="logo-placeholder" style="display: none; width: 50px; height: 50px; background: #f0f0f0; border-radius: 8px; align-items: center; justify-content: center; font-size: 20px; color: #999;">
-                    🏛️
+        instituciones.forEach((inst, index) => {
+            const div = document.createElement('div');
+            div.className = 'institucion-logo-item';
+            
+            let imgSrc = inst.logo_path || '';
+            const possiblePaths = [
+                imgSrc,
+                '/' + imgSrc,
+                '/static/' + imgSrc,
+                '/static/uploads/sesiones/' + imgSrc.split('/').pop(),
+                '/static/img/' + imgSrc.split('/').pop()
+            ];
+            
+            const finalSrc = possiblePaths[0];
+            
+            div.innerHTML = `
+                <input type="checkbox" class="logo-checkbox" data-id="${inst.id}" value="${inst.logo_path}" checked>
+                <div class="logo-thumb-container">
+                    <img src="${finalSrc}" class="logo-thumb" 
+                         onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.logo-placeholder').style.display='flex';">
+                    <div class="logo-placeholder" style="display: none; width: 50px; height: 50px; background: #f0f0f0; border-radius: 8px; align-items: center; justify-content: center; font-size: 20px; color: #999;">
+                        🏛️
+                    </div>
                 </div>
-            </div>
-            <span class="institucion-nombre">${this.escapeHtml(inst.nombre)}</span>
-        `;
-        container.appendChild(div);
-    });
-    
-    // Agregar event listeners a checkboxes
-    document.querySelectorAll('.logo-checkbox').forEach(cb => {
-        cb.addEventListener('change', () => this.updateLogosCount());
-    });
-}
+                <span class="institucion-nombre">${this.escapeHtml(inst.nombre)}</span>
+            `;
+            container.appendChild(div);
+        });
+        
+        // Agregar event listeners a checkboxes
+        document.querySelectorAll('.logo-checkbox').forEach(cb => {
+            cb.addEventListener('change', () => this.updateLogosCount());
+        });
+    }
+
     updateLogosCount() {
         const checkboxes = document.querySelectorAll('.logo-checkbox');
         const selected = Array.from(checkboxes).filter(cb => cb.checked).length;
@@ -178,7 +197,6 @@ class PDFExporter {
             countSpan.innerText = `${selected} de ${total} logos seleccionados`;
         }
         
-        // Actualizar "seleccionar todos"
         const selectAll = document.getElementById('selectAllLogos');
         if (selectAll && total > 0) {
             selectAll.checked = selected === total;
@@ -201,7 +219,6 @@ class PDFExporter {
         
         console.log(`📤 Subiendo logo ${position}: ${file.name}`);
         
-        // Validar tipo y tamaño
         const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
         if (!validTypes.includes(file.type)) {
             Swal.fire('Error', 'Formato no válido. Use PNG, JPG o WEBP', 'error');
@@ -215,7 +232,6 @@ class PDFExporter {
             return;
         }
         
-        // Mostrar preview
         const reader = new FileReader();
         reader.onload = (e) => {
             const previewDiv = document.getElementById(`preview${this.capitalize(position)}`);
@@ -258,19 +274,16 @@ class PDFExporter {
         generateBtn.disabled = true;
         
         try {
-            // Obtener logos seleccionados del pie
             const selectedLogos = Array.from(document.querySelectorAll('.logo-checkbox:checked'))
                 .map(cb => cb.value)
-                .filter(v => v); // Filtrar vacíos
+                .filter(v => v);
             
             console.log(`📋 Logos seleccionados para el pie: ${selectedLogos.length}`);
             
-            // Crear FormData para enviar archivos
             const formData = new FormData();
             formData.append('evento_id', this.eventoId);
             formData.append('logos_pie', JSON.stringify(selectedLogos));
             
-            // Agregar logos del encabezado si se subieron nuevos
             let hasCustomLogos = false;
             for (const [position, file] of Object.entries(this.tempUploads)) {
                 if (file) {
@@ -291,7 +304,6 @@ class PDFExporter {
             });
             
             if (response.ok) {
-                // Descargar archivo
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -326,15 +338,10 @@ class PDFExporter {
     
     resetForm() {
         console.log('🔄 Resetear formulario');
-        // Limpiar previews
         ['izquierda', 'centro', 'derecha'].forEach(pos => {
             this.clearLogo(pos);
         });
-        
-        // Resetear selección de logos
         this.selectAllLogos(true);
-        
-        // Limpiar tempUploads
         this.tempUploads = { izquierda: null, centro: null, derecha: null };
     }
     
@@ -350,8 +357,10 @@ class PDFExporter {
     }
 }
 
-// Inicializar cuando el DOM esté listo
+// Inicializar cuando el DOM esté listo — una sola vez
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM cargado, inicializando PDFExporter...');
-    window.pdfExporter = new PDFExporter();
+    if (!window.pdfExporter) {
+        window.pdfExporter = new PDFExporter();
+    }
 });
