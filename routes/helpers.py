@@ -98,8 +98,35 @@ def enviar_correo(destinatario, asunto, cuerpo_html, cuerpo_texto=None):
         print(f"❌ Error al enviar correo a {destinatario}: {e}")
         return False
 
+# ==================== FUNCIONES DE CORREO ====================
+def enviar_correo(destinatario, asunto, cuerpo_html, cuerpo_texto=None):
+    """Función genérica para enviar correos"""
+    from flask import current_app
+    from flask_mail import Message
+    
+    mail = current_app.extensions.get('mail')
+    if not mail:
+        print("❌ Mail no inicializado")
+        return False
+    
+    try:
+        msg = Message(asunto, recipients=[destinatario])
+        msg.html = cuerpo_html
+        if cuerpo_texto:
+            msg.body = cuerpo_texto
+        mail.send(msg)
+        print(f"✅ Correo enviado a {destinatario}")
+        return True
+    except Exception as e:
+        print(f"❌ Error al enviar correo a {destinatario}: {e}")
+        return False
+
 def enviar_credenciales_usuario(nombre, email, password_temporal, rol):
     from flask import url_for
+    import config  # Importar la configuración actualizada
+    
+    # Usar la URL base desde config
+    base_url = config.BASE_URL
     
     asunto = f"Bienvenido al Sistema de Gestión UES - Credenciales de acceso"
     
@@ -114,7 +141,7 @@ def enviar_credenciales_usuario(nombre, email, password_temporal, rol):
         <p><strong>Correo:</strong> {email}</p>
         <p><strong>Contraseña temporal:</strong> <code>{password_temporal}</code></p>
         <p>⚠️ Debes cambiar tu contraseña al iniciar sesión.</p>
-        <a href="http://localhost:5000/login" style="background: #1a3a2a; color: white; padding: 10px; text-decoration: none;">Iniciar sesión</a>
+        <a href="{base_url}/login" style="background: #1a3a2a; color: white; padding: 10px; text-decoration: none;">Iniciar sesión</a>
     </body>
     </html>
     """
@@ -122,8 +149,13 @@ def enviar_credenciales_usuario(nombre, email, password_temporal, rol):
     return enviar_correo(email, asunto, cuerpo_html)
 
 def enviar_enlace_recuperacion(email, nombre, token, tipo_usuario):
-    # ✅ CORRECTO: Incluye /auth/ en la ruta
-    enlace = f"http://localhost:5000/auth/recuperar-password?token={token}&tipo={tipo_usuario}"
+    import config  # Importar la configuración actualizada
+    
+    # Usar la URL base desde config
+    base_url = config.BASE_URL
+    enlace = f"{base_url}/auth/recuperar-password?token={token}&tipo={tipo_usuario}"
+    
+    print(f"📧 Enlace de recuperación generado: {enlace}")  # Para depuración
     
     asunto = "Recuperación de contraseña - UES San José del Rincón"
     
@@ -144,8 +176,8 @@ def enviar_enlace_recuperacion(email, nombre, token, tipo_usuario):
     """
     
     return enviar_correo(email, asunto, cuerpo_html)
-    
-    return enviar_correo(email, asunto, cuerpo_html)
+
+# El resto de tus funciones (enviar_correo_inscripcion, etc.) quedan igual
 
 def enviar_correo_inscripcion(email, nombre_alumno, nombre_sesion, fecha, hora_inicio, hora_fin, escenario):
     asunto = f"Confirmación de inscripción - {nombre_sesion}"
