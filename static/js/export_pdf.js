@@ -52,6 +52,20 @@ class PDFExporter {
             console.error('❌ Botón btnGeneratePdf NO encontrado');
         }
         
+        // ✅ NUEVO: Botón Guardar configuración
+        const saveConfigBtn = document.getElementById('btnSaveConfig');
+        if (saveConfigBtn) {
+            console.log('✅ Botón Guardar Configuración encontrado');
+            saveConfigBtn.replaceWith(saveConfigBtn.cloneNode(true));
+            document.getElementById('btnSaveConfig').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.saveConfigOnly();
+            });
+        } else {
+            console.error('❌ Botón btnSaveConfig NO encontrado');
+        }
+        
         // Seleccionar todos
         const selectAll = document.getElementById('selectAllLogos');
         if (selectAll) {
@@ -269,6 +283,9 @@ class PDFExporter {
             return;
         }
         
+        // Verificar si se debe guardar como configuración por defecto
+        const saveAsDefault = document.getElementById('saveAsDefault')?.checked || false;
+        
         const originalText = generateBtn.innerHTML;
         generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
         generateBtn.disabled = true;
@@ -279,10 +296,14 @@ class PDFExporter {
                 .filter(v => v);
             
             console.log(`📋 Logos seleccionados para el pie: ${selectedLogos.length}`);
+            if (saveAsDefault) {
+                console.log('💾 Se guardará como configuración por defecto del evento');
+            }
             
             const formData = new FormData();
             formData.append('evento_id', this.eventoId);
             formData.append('logos_pie', JSON.stringify(selectedLogos));
+            formData.append('guardar_como_default', saveAsDefault);
             
             let hasCustomLogos = false;
             for (const [position, file] of Object.entries(this.tempUploads)) {
@@ -315,7 +336,12 @@ class PDFExporter {
                 a.remove();
                 
                 console.log('✅ PDF generado y descargado correctamente');
-                Swal.fire('Éxito', 'PDF generado correctamente', 'success');
+                
+                let successMessage = 'PDF generado correctamente';
+                if (saveAsDefault) {
+                    successMessage = '✅ PDF generado y guardado como configuración por defecto. Los alumnos ahora verán estos logos en sus PDFs.';
+                }
+                Swal.fire('Éxito', successMessage, 'success');
                 this.closeModal();
             } else {
                 let errorMsg = 'Error al generar PDF';
@@ -333,6 +359,64 @@ class PDFExporter {
                 generateBtn.innerHTML = originalText;
                 generateBtn.disabled = false;
             }
+        }
+    }
+    
+    // ✅ NUEVO MÉTODO: Guardar solo la configuración sin generar PDF
+    async saveConfigOnly() {
+        const saveBtn = document.getElementById('btnSaveConfig');
+        if (!saveBtn) return;
+        
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        saveBtn.disabled = true;
+        
+        try {
+            const selectedLogos = Array.from(document.querySelectorAll('.logo-checkbox:checked'))
+                .map(cb => cb.value)
+                .filter(v => v);
+            
+            console.log(`📋 Logos seleccionados para guardar: ${selectedLogos.length}`);
+            
+            const formData = new FormData();
+            formData.append('evento_id', this.eventoId);
+            formData.append('logos_pie', JSON.stringify(selectedLogos));
+            
+            // Agregar logos del encabezado si se subieron
+            for (const [position, file] of Object.entries(this.tempUploads)) {
+                if (file) {
+                    formData.append(`logo_${position}`, file);
+                }
+            }
+            
+            const response = await fetch('/admin/eventos/guardar-configuracion', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                Swal.fire({
+                    title: '¡Configuración guardada!',
+                    text: 'Los alumnos ahora verán estos logos en sus PDFs cuando descarguen su agenda.',
+                    icon: 'success',
+                    confirmButtonColor: '#70AC46'
+                });
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            console.error('❌ Error guardando configuración:', error);
+            Swal.fire({
+                title: 'Error',
+                text: error.message || 'Error al guardar la configuración',
+                icon: 'error',
+                confirmButtonColor: '#70AC46'
+            });
+        } finally {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
         }
     }
     

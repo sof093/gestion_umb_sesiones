@@ -27,30 +27,30 @@
     </button>
     
     <div class="nav-links" id="navLinks">
-    <a href="/admin/dashboard" class="nav-link">
-        <i class="fas fa-home" style="margin-right: 8px;"></i>
-        Inicio
-    </a>
-    <a href="/admin/usuarios" class="nav-link" data-page="usuarios">
-        <i class="fas fa-users" style="margin-right: 8px;"></i>
-        Usuarios
-    </a>
-</div>
-    
-  <div class="navbar-right">
-    <button class="theme-toggle" id="themeToggle">
-        <i class="fas fa-moon"></i>
-    </button>
-    
-    <div class="admin-info">
-        <i class="fas fa-user-shield"></i>
-        <span class="admin-name">{{ session.get('user_nombre', 'Administrador') }}</span>
+        <a href="/admin/dashboard" class="nav-link">
+            <i class="fas fa-home" style="margin-right: 8px;"></i>
+            Inicio
+        </a>
+        <a href="/admin/usuarios" class="nav-link" data-page="usuarios">
+            <i class="fas fa-users" style="margin-right: 8px;"></i>
+            Usuarios
+        </a>
     </div>
     
-    <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">
-        <i class="fas fa-sign-out-alt"></i>
-    </button>  
-</div>
+    <div class="navbar-right">
+        <button class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+        
+        <div class="admin-info">
+            <i class="fas fa-user-shield"></i>
+            <span class="admin-name">{{ session.get('user_nombre', 'Administrador') }}</span>
+        </div>
+        
+        <button id="logoutBtn" class="btn-icon" title="Cerrar sesión">
+            <i class="fas fa-sign-out-alt"></i>
+        </button>  
+    </div>
 </nav>
 
 <div class="hero">
@@ -69,9 +69,9 @@
     </div>
     <div class="evento-bar-right">
         <button id="btnActivarEvento" class="btn-evento" style="background: var(--verde-oscuro); color: white;">
-        <i class="fas fa-check-circle"></i> 
-        <span>Activar esta jornada</span>
-    </button>
+            <i class="fas fa-check-circle"></i> 
+            <span>Activar esta jornada</span>
+        </button>
         <div id="eventoMeta" class="evento-meta"></div>
 
         <button id="btnPublicarJornada" class="btn-evento" style="background: var(--dorado); color: var(--verde-oscuro);">
@@ -92,7 +92,7 @@
     </div>
 </div>
 
-<!-- ==================== PANEL DE CONFLICTOS (AGREGAR) ==================== -->
+<!-- ==================== PANEL DE CONFLICTOS ==================== -->
 <div id="conflictAlert" class="conflict-alert" style="display: none;">
     <div class="conflict-alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
     <div class="conflict-alert-body">
@@ -103,7 +103,7 @@
 </div>
 
 <main class="main">
-    <!-- ==================== VISTA CALENDARIO (AGREGAR) ==================== -->
+    <!-- ==================== VISTA CALENDARIO ==================== -->
     <div id="vistaCalendario" style="display: block;">
         <div class="cal-header">
             <div class="cal-nav">
@@ -116,8 +116,8 @@
             </div>
             <div class="cal-actions">
                 <button class="cal-export-btn" id="btnExportPdf" style="background: #f44336; color: white;">
-    <i class="fas fa-file-pdf"></i> Exportar PDF personalizado
-</button>
+                    <i class="fas fa-file-pdf"></i> Exportar PDF personalizado
+                </button>
             </div>
         </div>
         <div class="cal-wrapper">
@@ -134,7 +134,7 @@
         </div>
     </div>
 
-    <!-- ==================== VISTA TABLA (EXISTENTE) ==================== -->
+    <!-- ==================== VISTA TABLA ==================== -->
     <div id="vistaTabla" style="display: none;">
         <div class="controls">
             <div class="mostrar-group">
@@ -208,7 +208,7 @@
     </div>
 </div>
 
-<!-- ==================== MODAL EVENTO (AGREGAR) ==================== -->
+<!-- ==================== MODAL EVENTO ==================== -->
 <div id="modalEvento" class="modal-evento-overlay" style="display: none;">
     <div class="modal-evento-container">
         <div class="modal-evento-header">
@@ -252,6 +252,7 @@
         </div>
     </div>
 </div>
+
 <!-- ==================== MODAL EXPORTACIÓN PDF ==================== -->
 <div id="modalExportPdf" class="modal-export-overlay" style="display: none;">
     <div class="modal-export-container">
@@ -314,17 +315,37 @@
                         <span id="logosCount" class="logos-count">0 logos seleccionados</span>
                     </div>
                 </div>
+                
+                <!-- SECCIÓN OPCIONES DE GUARDADO -->
+                <div class="export-section" style="border-top: 1px solid #e0e0e0; margin-top: 15px;">
+                    <div class="save-default-option" style="margin: 15px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #70AC46;">
+                        <label style="display: flex; align-items: center; cursor: pointer; gap: 10px;">
+                            <input type="checkbox" id="saveAsDefault" style="width: 18px; height: 18px; margin: 0;">
+                            <span style="color: #4A7A2E; font-weight: 600;">
+                                <i class="fas fa-save"></i> Guardar como configuración por defecto
+                            </span>
+                            <small style="color: #666; font-size: 11px; margin-left: auto;">
+                                <i class="fas fa-info-circle"></i> Los alumnos verán estos logos en sus PDFs
+                            </small>
+                        </label>
+                    </div>
+                </div>
             </form>
         </div>
         
+        <!-- ==================== FOOTER CON BOTONES ACTUALIZADOS ==================== -->
         <div class="modal-export-footer">
             <button class="btn-cancel" id="btnExportCancel">Cancelar</button>
+            <button class="btn-save-config" id="btnSaveConfig" style="background: #2196F3; color: white;">
+                <i class="fas fa-save"></i> Guardar configuración
+            </button>
             <button class="btn-generate" id="btnGeneratePdf">
                 <i class="fas fa-download"></i> Generar PDF
             </button>
         </div>
     </div>
 </div>
+
 <footer>
     <strong>© 2026 UES San José del Rincón</strong><br>
     Gestión de la jornada académica y cultural<br>

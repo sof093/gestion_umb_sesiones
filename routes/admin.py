@@ -508,3 +508,5 @@ def verificar_disponibilidad():
     finally:
         if conexion:
             conexion.close()
+
+

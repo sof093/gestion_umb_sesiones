@@ -1587,3 +1587,24 @@ body:not(.dark-mode) .nav-links .nav-link:hover {
     background: var(--dorado);
     color: #1a1a1a !important;
 }
+
+.btn-save-config {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.6rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-save-config:hover {
+    background: #0b7dda;
+    transform: translateY(-1px);
+}

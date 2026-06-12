@@ -18,6 +18,110 @@ from reportlab.pdfgen import canvas
 
 admin_export_bp = Blueprint('admin_export', __name__, url_prefix='/admin')
 
+# Agrega estas funciones al inicio del archivo admin_export.py
+
+def guardar_configuracion_logos(evento_id, logos_pie=None, logo_izquierda=None, logo_centro=None, logo_derecha=None):
+    """Guarda la configuración de logos para un evento"""
+    con = config.conectar_db()
+    if not con:
+        return False
+    
+    try:
+        with con.cursor() as cur:
+            # Obtener configuración actual
+            cur.execute("SELECT logos_config FROM evento WHERE id_evento = %s", (evento_id,))
+            result = cur.fetchone()
+            config_data = json.loads(result['logos_config']) if result and result['logos_config'] else {}
+            
+            # Actualizar valores
+            if logos_pie is not None:
+                config_data['logos_pie'] = logos_pie
+            if logo_izquierda is not None:
+                config_data['logo_izquierda'] = logo_izquierda
+            if logo_centro is not None:
+                config_data['logo_centro'] = logo_centro
+            if logo_derecha is not None:
+                config_data['logo_derecha'] = logo_derecha
+            
+            # Guardar
+            cur.execute(
+                "UPDATE evento SET logos_config = %s WHERE id_evento = %s",
+                (json.dumps(config_data), evento_id)
+            )
+            con.commit()
+            return True
+    except Exception as e:
+        print(f"Error guardando configuración de logos: {e}")
+        return False
+    finally:
+        con.close()
+
+def cargar_configuracion_logos(evento_id):
+    """Carga la configuración de logos guardada para un evento"""
+    con = config.conectar_db()
+    if not con:
+        return None
+    
+    try:
+        with con.cursor() as cur:
+            cur.execute("SELECT logos_config FROM evento WHERE id_evento = %s", (evento_id,))
+            result = cur.fetchone()
+            if result and result['logos_config']:
+                return json.loads(result['logos_config'])
+            return None
+    except Exception as e:
+        print(f"Error cargando configuración de logos: {e}")
+        return None
+    finally:
+        con.close()
+
+
+def cargar_logos_desde_configuracion(evento_id, max_ancho=None, max_alto=None):
+    """
+    Carga los logos según la configuración guardada del evento
+    Retorna: (logo_izquierda, logo_centro, logo_derecha, logos_pie)
+    """
+    config = cargar_configuracion_logos(evento_id)
+    if not config:
+        return None, None, None, []
+    
+    # Cargar logos del encabezado
+    logo_izq = None
+    logo_cent = None
+    logo_der = None
+    
+    if max_ancho and max_alto:
+        # Si se especifican dimensiones, cargar proporcionalmente
+        if config.get('logo_izquierda'):
+            logo_izq = cargar_imagen_proporcional(config['logo_izquierda'], max_ancho, max_alto)
+        if config.get('logo_centro'):
+            logo_cent = cargar_imagen_proporcional(config['logo_centro'], max_ancho, max_alto)
+        if config.get('logo_derecha'):
+            logo_der = cargar_imagen_proporcional(config['logo_derecha'], max_ancho, max_alto)
+    else:
+        # Carga normal
+        if config.get('logo_izquierda'):
+            logo_izq = cargar_imagen(config['logo_izquierda'], 55, 50)
+        if config.get('logo_centro'):
+            logo_cent = cargar_imagen(config['logo_centro'], 55, 50)
+        if config.get('logo_derecha'):
+            logo_der = cargar_imagen(config['logo_derecha'], 55, 50)
+    
+    # Cargar logos del pie
+    logos_pie = []
+    if config.get('logos_pie') and max_ancho and max_alto:
+        for logo_path in config['logos_pie']:
+            logo = cargar_imagen_proporcional(logo_path, max_ancho, max_alto)
+            if logo:
+                logos_pie.append(logo)
+    elif config.get('logos_pie'):
+        # Si no hay dimensiones, cargar normalmente (mantener compatibilidad)
+        for logo_path in config['logos_pie']:
+            logo = cargar_imagen(logo_path, 50, 50)
+            if logo:
+                logos_pie.append(logo)
+    
+    return logo_izq, logo_cent, logo_der, logos_pie
 
 def cargar_imagen(ruta, ancho=50, alto=50):
     """Carga una imagen preservando proporciones dentro de los límites dados."""
@@ -99,24 +203,95 @@ def cargar_imagen_proporcional(ruta, max_ancho, max_alto):
         print(f"❌ Error cargando imagen proporcional {ruta}: {e}")
         return None
 
-
-@admin_export_bp.route("/eventos/<int:id_evento>/exportar-pdf")
-def exportar_itinerario_pdf(id_evento):
+@admin_export_bp.route("/eventos/guardar-configuracion", methods=['POST'])
+def guardar_configuracion():
+    """Guarda solo la configuración de logos sin generar PDF"""
     if not session.get("admin_logged"):
-        return redirect(url_for("auth.login"))
+        return jsonify({"success": False, "message": "No autorizado"}), 401
+    
+    evento_id = request.form.get('evento_id')
+    logos_pie_json = request.form.get('logos_pie', '[]')
+    
+    if not evento_id:
+        return jsonify({"success": False, "message": "ID de evento requerido"}), 400
+    
+    try:
+        logos_pie = json.loads(logos_pie_json)
+    except Exception:
+        logos_pie = []
     
     con = config.conectar_db()
     if not con:
-        flash("Error de conexión", "error")
-        return redirect(url_for("admin.admin_sesiones"))
+        return jsonify({"success": False, "message": "Error de conexión"}), 500
+    
+    try:
+        # Guardar logos del encabezado
+        temp_dir = os.path.join('static', 'temp_logos')
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        saved_logo_paths = {'izquierda': None, 'centro': None, 'derecha': None}
+        
+        for position in ['izquierda', 'centro', 'derecha']:
+            if f'logo_{position}' in request.files:
+                file = request.files[f'logo_{position}']
+                if file and file.filename:
+                    ext = file.filename.rsplit('.', 1)[1].lower()
+                    filename = f"evento_logo_{position}_{evento_id}.{ext}"
+                    filepath = os.path.join(temp_dir, filename)
+                    file.save(filepath)
+                    saved_logo_paths[position] = f"static/temp_logos/{filename}"
+                    print(f"✅ Logo {position} guardado permanentemente en: {filepath}")
+        
+        # Guardar configuración completa
+        guardar_configuracion_logos(
+            evento_id, 
+            logos_pie=logos_pie,
+            logo_izquierda=saved_logo_paths['izquierda'],
+            logo_centro=saved_logo_paths['centro'],
+            logo_derecha=saved_logo_paths['derecha']
+        )
+        
+        return jsonify({
+            "success": True, 
+            "message": "✅ Configuración guardada correctamente. Los alumnos ahora verán estos logos en sus PDFs."
+        })
+        
+    except Exception as e:
+        print(f"Error guardando configuración: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        con.close()
+
+@admin_export_bp.route("/eventos/exportar-pdf-personalizado", methods=['POST'])
+def exportar_pdf_personalizado():
+    """Genera PDF con logos personalizados subidos por el admin y guarda la configuración"""
+    if not session.get("admin_logged"):
+        return jsonify({"success": False, "message": "No autorizado"}), 401
+    
+    evento_id = request.form.get('evento_id')
+    logos_pie_json = request.form.get('logos_pie', '[]')
+    guardar_como_default = request.form.get('guardar_como_default', 'false') == 'true'  # Nuevo parámetro
+    
+    if not evento_id:
+        return jsonify({"success": False, "message": "ID de evento requerido"}), 400
+    
+    try:
+        logos_pie = json.loads(logos_pie_json)
+    except Exception:
+        logos_pie = []
+    
+    con = config.conectar_db()
+    if not con:
+        return jsonify({"success": False, "message": "Error de conexión"}), 500
     
     try:
         with con.cursor() as cur:
-            cur.execute("SELECT * FROM evento WHERE id_evento = %s", (id_evento,))
+            cur.execute("SELECT * FROM evento WHERE id_evento = %s", (evento_id,))
             ev = cur.fetchone()
             if not ev:
-                flash("Evento no encontrado", "error")
-                return redirect(url_for("admin.admin_sesiones"))
+                return jsonify({"success": False, "message": "Evento no encontrado"}), 404
             
             cur.execute("""
                 SELECT s.*, ts.nombre_sesion AS tipo, e.nombre_escenario AS escenario_nombre
@@ -125,112 +300,107 @@ def exportar_itinerario_pdf(id_evento):
                 JOIN escenarios e ON e.id_escenario = s.id_escenario
                 WHERE s.id_evento = %s
                 ORDER BY s.fecha, s.hora_inicio
-            """, (id_evento,))
+            """, (evento_id,))
             sesiones = cur.fetchall()
-            
-            cur.execute("""
-                SELECT DISTINCT s.procedencia_institucion_independiente, s.logo
-                FROM sesion s
-                WHERE s.id_evento = %s AND s.procedencia_institucion_independiente IS NOT NULL AND s.logo IS NOT NULL
-            """, (id_evento,))
-            instituciones = cur.fetchall()
         
-        logo_gobierno = cargar_imagen('static/img/logo_gobierno.png', 55, 50)
-        logo_umb = cargar_imagen('static/img/logo_umb.png', 55, 50)
-        nombre_limpio = ev['nombre'].replace(' ', '_').replace('ñ', 'n').lower()
-        logo_jornada = cargar_imagen(f'static/img/jornadas/{nombre_limpio}.png', 65, 50)
-        if not logo_jornada:
-            logo_jornada = cargar_imagen('static/img/logo_jornada_default.png', 65, 50)
+        # Guardar logos del encabezado temporalmente
+        temp_dir = os.path.join('static', 'temp_logos')
+        os.makedirs(temp_dir, exist_ok=True)
         
+        logo_paths = {'izquierda': None, 'centro': None, 'derecha': None}
+        saved_logo_paths = {'izquierda': None, 'centro': None, 'derecha': None}  # Para guardar permanentemente
+        
+        for position in ['izquierda', 'centro', 'derecha']:
+            if f'logo_{position}' in request.files:
+                file = request.files[f'logo_{position}']
+                if file and file.filename:
+                    ext = file.filename.rsplit('.', 1)[1].lower()
+                    # Usar nombre permanente si se va a guardar
+                    if guardar_como_default:
+                        filename = f"evento_logo_{position}_{evento_id}.{ext}"
+                    else:
+                        filename = f"temp_{position}_{evento_id}_{int(time.time())}.{ext}"
+                    filepath = os.path.join(temp_dir, filename)
+                    file.save(filepath)
+                    logo_paths[position] = filepath
+                    saved_logo_paths[position] = f"static/temp_logos/{filename}"
+                    print(f"✅ Logo {position} guardado en: {filepath}")
+        
+        # Si se debe guardar como configuración por defecto
+        if guardar_como_default:
+            # Guardar paths de logos del encabezado
+            header_logos = {
+                'logo_izquierda': saved_logo_paths['izquierda'],
+                'logo_centro': saved_logo_paths['centro'],
+                'logo_derecha': saved_logo_paths['derecha']
+            }
+            # Guardar configuración completa
+            guardar_configuracion_logos(
+                evento_id, 
+                logos_pie=logos_pie,
+                logo_izquierda=saved_logo_paths['izquierda'],
+                logo_centro=saved_logo_paths['centro'],
+                logo_derecha=saved_logo_paths['derecha']
+            )
+            print(f"✅ Configuración guardada para evento {evento_id}")
+        
+        # Cargar logos del pie con proporciones correctas
         logos_participantes = []
-        for inst in instituciones:
-            if inst.get('logo'):
-                logo = cargar_imagen_proporcional(inst['logo'], 0.55 * inch, 0.45 * inch)
-                if logo:
-                    logos_participantes.append(logo)
+        max_ancho_logo = 0.55 * inch
+        max_alto_logo = 0.45 * inch
+
+        print(f"🔍 Procesando {len(logos_pie)} logos seleccionados para el pie")
+        for logo_path in logos_pie:
+            # Resolver ruta real del archivo
+            full_path = None
+            candidatos = [
+                logo_path,
+                os.path.join('static', logo_path.lstrip('/')),
+                os.path.join('static/uploads/sesiones', os.path.basename(logo_path))
+            ]
+            for c in candidatos:
+                if os.path.exists(c):
+                    full_path = c
+                    break
+
+            if full_path:
+                img = cargar_imagen_proporcional(full_path, max_ancho_logo, max_alto_logo)
+                if img:
+                    logos_participantes.append(img)
+                    print(f"    ✅ Logo cargado: {full_path}")
+            else:
+                print(f"    ❌ No encontrado: {logo_path}")
         
-        COLOR_VERDE = colors.HexColor('#70AC46')
-        COLOR_VERDE_OSCURO = colors.HexColor('#4A7A2E')
-        COLOR_VERDE_CLARO = colors.HexColor('#F0F7EC')
-        COLOR_BORDE = colors.HexColor('#C8E6C0')
+        print(f"📊 Total logos en pie: {len(logos_participantes)}")
         
-        buffer = BytesIO()
-        doc = BaseDocTemplate(
-            buffer, pagesize=letter,
-            rightMargin=0.6*inch, leftMargin=0.6*inch,
-            topMargin=1.3*inch, bottomMargin=1.2*inch
+        pdf_bytes = generar_pdf_con_logos_personalizados(
+            ev, sesiones,
+            logo_paths['izquierda'],
+            logo_paths['centro'],
+            logo_paths['derecha'],
+            logos_participantes
         )
-        frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id='normal')
         
-        def dibujar_encabezado_y_pie(canvas_obj, doc):
-            canvas_obj.saveState()
-            ancho_pagina = letter[0]
-            alto_pagina = letter[1]
-            y_logos = alto_pagina - 0.65*inch
-            
-            if logo_gobierno:
-                logo_gobierno.drawOn(canvas_obj, 0.5*inch, y_logos - 0.30*inch)
-            if logo_jornada:
-                logo_jornada.drawOn(canvas_obj, (ancho_pagina / 2) - 0.35*inch, y_logos - 0.30*inch)
-            if logo_umb:
-                logo_umb.drawOn(canvas_obj, ancho_pagina - 0.85*inch, y_logos - 0.30*inch)
-            
-            canvas_obj.setFont('Helvetica-Bold', 11)
-            canvas_obj.setFillColor(COLOR_VERDE_OSCURO)
-            canvas_obj.drawCentredString(ancho_pagina / 2, y_logos - 0.65*inch, ev['nombre'])
-            
-            fecha_inicio = ev['fecha_inicio'].strftime('%d/%m/%Y') if hasattr(ev['fecha_inicio'], 'strftime') else str(ev['fecha_inicio'])
-            fecha_fin = ev['fecha_fin'].strftime('%d/%m/%Y') if hasattr(ev['fecha_fin'], 'strftime') else str(ev['fecha_fin'])
-            canvas_obj.setFont('Helvetica', 8)
-            canvas_obj.setFillColorRGB(0.5, 0.5, 0.5)
-            canvas_obj.drawCentredString(ancho_pagina / 2, y_logos - 0.80*inch, f"{fecha_inicio} al {fecha_fin}")
-            
-            y_linea = y_logos - 0.95*inch
-            canvas_obj.setStrokeColor(COLOR_VERDE_OSCURO)
-            canvas_obj.setLineWidth(1)
-            canvas_obj.line(0.5*inch, y_linea, ancho_pagina - 0.5*inch, y_linea)
-            canvas_obj.restoreState()
-            
-            # Footer
-            canvas_obj.saveState()
-            y_base = 0.65*inch
-            
-            canvas_obj.setStrokeColor(COLOR_VERDE)
-            canvas_obj.setLineWidth(0.5)
-            canvas_obj.line(0.5*inch, y_base + 0.15*inch, ancho_pagina - 0.5*inch, y_base + 0.15*inch)
-            
-            canvas_obj.setFont('Helvetica-Oblique', 7)
-            canvas_obj.setFillColor(COLOR_VERDE)
-            lema = "CULTURA QUE INSPIRA, CONOCIMIENTO QUE TRANSFORMA"
-            canvas_obj.drawCentredString(ancho_pagina / 2, y_base - 0.05*inch, lema)
-            
-            _dibujar_logos_pie(canvas_obj, logos_participantes, ancho_pagina, y_base)
-            
-            canvas_obj.setFont('Helvetica', 6)
-            canvas_obj.setFillColorRGB(0.6, 0.6, 0.6)
-            canvas_obj.drawRightString(ancho_pagina - 0.5*inch, 0.25*inch, f"Página {doc.page}")
-            canvas_obj.restoreState()
+        # Limpiar temporales (solo los que son temporales, no los guardados)
+        for position, path in logo_paths.items():
+            if path and os.path.exists(path) and not guardar_como_default:
+                os.remove(path)
+                print(f"🗑️ Eliminado temporal: {path}")
         
-        doc.addPageTemplates([PageTemplate(id='Todo', frames=[frame], onPage=dibujar_encabezado_y_pie)])
-        
-        elementos = _construir_elementos_tabla(sesiones, COLOR_VERDE, COLOR_VERDE_OSCURO, COLOR_VERDE_CLARO, COLOR_BORDE)
-        doc.build(elementos)
-        
-        response = make_response(buffer.getvalue())
+        response = make_response(pdf_bytes)
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename="itinerario_{ev["nombre"].replace(" ", "_")}.pdf"'
-        buffer.close()
+        response.headers['Content-Disposition'] = (
+            f'attachment; filename="itinerario_{ev["nombre"].replace(" ", "_")}_personalizado.pdf"'
+        )
         return response
         
     except Exception as e:
-        print(f"[PDF Error] {e}")
+        print(f"Error generando PDF personalizado: {e}")
         import traceback
         traceback.print_exc()
-        flash(f"Error al generar PDF: {e}", "error")
-        return redirect(url_for("admin.admin_sesiones"))
+        return jsonify({"success": False, "message": str(e)}), 500
     finally:
         con.close()
-
 
 def _dibujar_logos_pie(canvas_obj, logos_participantes, ancho_pagina, y_base):
     """Dibuja los logos del pie de forma centrada y proporcional."""
@@ -427,6 +597,10 @@ def get_instituciones_logos(id_evento):
                     "logo_path": row['logo_path']
                 })
             
+            print(f"📋 Instituciones encontradas: {len(instituciones)}")  # Debug
+            for inst in instituciones:
+                print(f"   - {inst['nombre']}: {inst['logo_path']}")
+            
             return jsonify({
                 "success": True,
                 "instituciones": instituciones
@@ -438,118 +612,6 @@ def get_instituciones_logos(id_evento):
         con.close()
 
 
-@admin_export_bp.route("/eventos/exportar-pdf-personalizado", methods=['POST'])
-def exportar_pdf_personalizado():
-    """Genera PDF con logos personalizados subidos por el admin"""
-    if not session.get("admin_logged"):
-        return jsonify({"success": False, "message": "No autorizado"}), 401
-    
-    evento_id = request.form.get('evento_id')
-    logos_pie_json = request.form.get('logos_pie', '[]')
-    
-    if not evento_id:
-        return jsonify({"success": False, "message": "ID de evento requerido"}), 400
-    
-    try:
-        logos_pie = json.loads(logos_pie_json)
-    except Exception:
-        logos_pie = []
-    
-    con = config.conectar_db()
-    if not con:
-        return jsonify({"success": False, "message": "Error de conexión"}), 500
-    
-    try:
-        with con.cursor() as cur:
-            cur.execute("SELECT * FROM evento WHERE id_evento = %s", (evento_id,))
-            ev = cur.fetchone()
-            if not ev:
-                return jsonify({"success": False, "message": "Evento no encontrado"}), 404
-            
-            cur.execute("""
-                SELECT s.*, ts.nombre_sesion AS tipo, e.nombre_escenario AS escenario_nombre
-                FROM sesion s
-                JOIN tipo_sesion ts ON ts.id_tipo_sesion = s.id_tipo_sesion
-                JOIN escenarios e ON e.id_escenario = s.id_escenario
-                WHERE s.id_evento = %s
-                ORDER BY s.fecha, s.hora_inicio
-            """, (evento_id,))
-            sesiones = cur.fetchall()
-        
-        # Guardar logos del encabezado temporalmente
-        temp_dir = os.path.join('static', 'temp_logos')
-        os.makedirs(temp_dir, exist_ok=True)
-        
-        logo_paths = {'izquierda': None, 'centro': None, 'derecha': None}
-        
-        for position in ['izquierda', 'centro', 'derecha']:
-            if f'logo_{position}' in request.files:
-                file = request.files[f'logo_{position}']
-                if file and file.filename:
-                    ext = file.filename.rsplit('.', 1)[1].lower()
-                    filename = f"temp_{position}_{evento_id}_{int(time.time())}.{ext}"
-                    filepath = os.path.join(temp_dir, filename)
-                    file.save(filepath)
-                    logo_paths[position] = filepath
-                    print(f"✅ Logo {position} guardado en: {filepath}")
-        
-        # Cargar logos del pie con proporciones correctas
-        logos_participantes = []
-        max_ancho_logo = 0.55 * inch
-        max_alto_logo = 0.45 * inch
-
-        print(f"🔍 Procesando {len(logos_pie)} logos seleccionados para el pie")
-        for logo_path in logos_pie:
-            # Resolver ruta real del archivo
-            full_path = None
-            candidatos = [
-                logo_path,
-                os.path.join('static', logo_path.lstrip('/')),
-                os.path.join('static/uploads/sesiones', os.path.basename(logo_path))
-            ]
-            for c in candidatos:
-                if os.path.exists(c):
-                    full_path = c
-                    break
-
-            if full_path:
-                img = cargar_imagen_proporcional(full_path, max_ancho_logo, max_alto_logo)
-                if img:
-                    logos_participantes.append(img)
-                    print(f"    ✅ Logo cargado: {full_path}")
-            else:
-                print(f"    ❌ No encontrado: {logo_path}")
-        
-        print(f"📊 Total logos en pie: {len(logos_participantes)}")
-        
-        pdf_bytes = generar_pdf_con_logos_personalizados(
-            ev, sesiones,
-            logo_paths['izquierda'],
-            logo_paths['centro'],
-            logo_paths['derecha'],
-            logos_participantes
-        )
-        
-        # Limpiar temporales
-        for path in logo_paths.values():
-            if path and os.path.exists(path):
-                os.remove(path)
-                print(f"🗑️ Eliminado temporal: {path}")
-        
-        response = make_response(pdf_bytes)
-        response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = (
-            f'attachment; filename="itinerario_{ev["nombre"].replace(" ", "_")}_personalizado.pdf"'
-        )
-        return response
-        
-    except Exception as e:
-        print(f"Error generando PDF personalizado: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
-    finally:
-        con.close()
 
 
 def generar_pdf_con_logos_personalizados(ev, sesiones, logo_izq_path, logo_centro_path, logo_der_path, logos_participantes):
@@ -658,9 +720,11 @@ def generar_pdf_con_logos_personalizados(ev, sesiones, logo_izq_path, logo_centr
     return buffer.getvalue()
 
 
+
+
 @admin_export_bp.route("/eventos/exportar-pdf-alumno")
 def alumno_exportar_agenda_pdf():
-    """Alumno descarga su agenda personal"""
+    """Alumno descarga su agenda personal usando la configuración de logos del evento"""
     if not session.get('user_tipo') == 'alumno':
         return redirect(url_for('auth.login'))
     
@@ -695,31 +759,54 @@ def alumno_exportar_agenda_pdf():
             if not sesiones:
                 flash("No tienes sesiones inscritas", "warning")
                 return redirect(url_for("alumno.alumno_agenda"))
+        
+        # ========== Cargar configuración de logos guardada ==========
+        # Dimensiones para logos del encabezado (alumno)
+        logo_header_ancho = 0.65 * inch
+        logo_header_alto = 0.55 * inch
+        
+        # Intentar cargar configuración guardada
+        logo_izq, logo_cent, logo_der, logos_participantes = cargar_logos_desde_configuracion(
+            ev['id_evento'],
+            max_ancho=logo_header_ancho,
+            max_alto=logo_header_alto
+        )
+        
+        # Si no hay configuración guardada, usar valores por defecto
+        if not logo_izq and not logo_cent and not logo_der:
+            print("ℹ️ No hay configuración guardada, usando logos por defecto")
+            logo_gobierno = cargar_imagen('static/img/logo_gobierno.png', 55, 50)
+            logo_umb = cargar_imagen('static/img/logo_umb.png', 55, 50)
+            nombre_limpio = ev['nombre'].replace(' ', '_').replace('ñ', 'n').lower()
+            logo_jornada = cargar_imagen(f'static/img/jornadas/{nombre_limpio}.png', 65, 50)
+            if not logo_jornada:
+                logo_jornada = cargar_imagen('static/img/logo_jornada_default.png', 65, 50)
             
-            cur.execute("""
-                SELECT DISTINCT s.procedencia_institucion_independiente, s.logo
-                FROM sesion s
-                WHERE s.id_evento = %s AND s.procedencia_institucion_independiente IS NOT NULL AND s.logo IS NOT NULL
-            """, (ev['id_evento'],))
-            instituciones = cur.fetchall()
+            logo_izq = logo_gobierno
+            logo_cent = logo_jornada
+            logo_der = logo_umb
         
-        logo_gobierno = cargar_imagen('static/img/logo_gobierno.png', 55, 50)
-        logo_umb = cargar_imagen('static/img/logo_umb.png', 55, 50)
-        nombre_limpio = ev['nombre'].replace(' ', '_').replace('ñ', 'n').lower()
-        logo_jornada = cargar_imagen(f'static/img/jornadas/{nombre_limpio}.png', 65, 50)
-        if not logo_jornada:
-            logo_jornada = cargar_imagen('static/img/logo_jornada_default.png', 65, 50)
+        # Si no hay logos del pie en la configuración, cargar desde la base de datos
+        if not logos_participantes:
+            print("ℹ️ No hay logos de pie configurados, cargando desde la base de datos")
+            with con.cursor() as cur:
+                cur.execute("""
+                    SELECT DISTINCT s.procedencia_institucion_independiente, s.logo
+                    FROM sesion s
+                    WHERE s.id_evento = %s AND s.procedencia_institucion_independiente IS NOT NULL AND s.logo IS NOT NULL
+                """, (ev['id_evento'],))
+                instituciones = cur.fetchall()
+            
+            for inst in instituciones:
+                if inst.get('logo'):
+                    logo = cargar_imagen_proporcional(inst['logo'], 0.55 * inch, 0.45 * inch)
+                    if logo:
+                        logos_participantes.append(logo)
+        # ================================================================
         
-        logos_participantes = []
-        for inst in instituciones:
-            if inst.get('logo'):
-                logo = cargar_imagen_proporcional(inst['logo'], 0.55 * inch, 0.45 * inch)
-                if logo:
-                    logos_participantes.append(logo)
-        
-        pdf_buffer = generar_pdf_para_alumno(
+        pdf_buffer = generar_pdf_para_alumno_con_config(
             ev, sesiones,
-            logo_gobierno, logo_jornada, logo_umb,
+            logo_izq, logo_cent, logo_der,
             logos_participantes,
             nombre_alumno, email_alumno
         )
@@ -738,9 +825,8 @@ def alumno_exportar_agenda_pdf():
     finally:
         con.close()
 
-
-def generar_pdf_para_alumno(ev, sesiones, logo_gobierno, logo_jornada, logo_umb, logos_participantes, nombre_alumno, email_alumno):
-    """Genera PDF personalizado para el alumno con SOLO sus sesiones inscritas"""
+def generar_pdf_para_alumno_con_config(ev, sesiones, logo_izq, logo_cent, logo_der, logos_participantes, nombre_alumno, email_alumno):
+    """Genera PDF personalizado para el alumno usando los logos de configuración"""
     COLOR_VERDE = colors.HexColor('#70AC46')
     COLOR_VERDE_OSCURO = colors.HexColor('#4A7A2E')
     COLOR_VERDE_CLARO = colors.HexColor('#F0F7EC')
@@ -760,12 +846,13 @@ def generar_pdf_para_alumno(ev, sesiones, logo_gobierno, logo_jornada, logo_umb,
         alto_pagina = letter[1]
         y_logos = alto_pagina - 0.65*inch
         
-        if logo_gobierno:
-            logo_gobierno.drawOn(canvas_obj, 0.5*inch, y_logos - 0.30*inch)
-        if logo_jornada:
-            logo_jornada.drawOn(canvas_obj, (ancho_pagina / 2) - 0.35*inch, y_logos - 0.30*inch)
-        if logo_umb:
-            logo_umb.drawOn(canvas_obj, ancho_pagina - 0.85*inch, y_logos - 0.30*inch)
+        # Dibujar logos personalizados del encabezado
+        if logo_izq:
+            logo_izq.drawOn(canvas_obj, 0.5*inch, y_logos - 0.30*inch)
+        if logo_cent:
+            logo_cent.drawOn(canvas_obj, (ancho_pagina / 2) - (logo_cent.drawWidth / 2), y_logos - 0.30*inch)
+        if logo_der:
+            logo_der.drawOn(canvas_obj, ancho_pagina - 0.5*inch - logo_der.drawWidth, y_logos - 0.30*inch)
         
         canvas_obj.setFont('Helvetica-Bold', 11)
         canvas_obj.setFillColor(COLOR_VERDE_OSCURO)
