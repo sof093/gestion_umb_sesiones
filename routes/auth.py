@@ -227,63 +227,150 @@ def olvide_password():
 
 @auth_bp.route('/recuperar-password', methods=['GET', 'POST'])
 def recuperar_password():
-    if request.method == 'GET':
-        token = request.args.get('token')
-        tipo = request.args.get('tipo')
+    # Manejar POST (envío del formulario)
+    if request.method == 'POST':
+        token = request.form.get('token')
+        tipo = request.form.get('tipo')
+        nueva_password = request.form.get('nueva_password')
+        confirmar_password = request.form.get('confirmar_password')
         
-        print(f"🔍 DEBUG - Parámetros recibidos:")
-        print(f"   Token: {token}")
-        print(f"   Tipo: {tipo}")
-        
+        # Validaciones básicas
         if not token or not tipo:
-            print("❌ Faltan parámetros")
-            flash('Enlace inválido - Faltan parámetros', 'error')
+            flash('Enlace inválido', 'error')
             return redirect(url_for('auth.login'))
         
+        if not nueva_password or not confirmar_password:
+            flash('Todos los campos son requeridos', 'error')
+            return render_template('recuperar_password.html', token=token, tipo=tipo)
+        
+        if nueva_password != confirmar_password:
+            flash('Las contraseñas no coinciden', 'error')
+            return render_template('recuperar_password.html', token=token, tipo=tipo)
+        
+        # Validar requisitos de contraseña
+        if len(nueva_password) < 8:
+            flash('La contraseña debe tener al menos 8 caracteres', 'error')
+            return render_template('recuperar_password.html', token=token, tipo=tipo)
+        
+        if not re.search(r'[A-Z]', nueva_password):
+            flash('La contraseña debe tener al menos una mayúscula', 'error')
+            return render_template('recuperar_password.html', token=token, tipo=tipo)
+        
+        if not re.search(r'[0-9]', nueva_password):
+            flash('La contraseña debe tener al menos un número', 'error')
+            return render_template('recuperar_password.html', token=token, tipo=tipo)
+        
+        if not re.search(r'[!@#$%^&*()_\-+=<>?{}[\]~]', nueva_password):
+            flash('La contraseña debe tener al menos un carácter especial', 'error')
+            return render_template('recuperar_password.html', token=token, tipo=tipo)
+        
         conexion = config.conectar_db()
+        
         try:
             with conexion.cursor() as cursor:
-                # Consulta más flexible para depuración
+                # Verificar que el token sigue siendo válido
                 cursor.execute("""
-                    SELECT *, NOW() as hora_actual 
-                    FROM recuperacion_password 
-                    WHERE token = %s AND tipo_usuario = %s AND usado = FALSE
+                    SELECT * FROM recuperacion_password 
+                    WHERE token = %s AND tipo_usuario = %s 
+                    AND usado = FALSE AND fecha_expiracion > NOW()
                 """, (token, tipo))
                 
-                resultado = cursor.fetchone()
+                registro = cursor.fetchone()
                 
-                if not resultado:
-                    print("❌ Token no encontrado o ya usado")
-                    # Verificar si existe pero está usado
-                    cursor.execute("SELECT * FROM recuperacion_password WHERE token = %s", (token,))
-                    existe = cursor.fetchone()
-                    if existe:
-                        print(f"   Token existe pero usado={existe['usado']}")
-                    else:
-                        print("   Token no existe en la tabla")
+                if not registro:
                     flash('El enlace ha expirado o ya fue utilizado', 'error')
                     return redirect(url_for('auth.login'))
                 
-                # Verificar expiración
-                print(f"📅 Fecha expiración: {resultado['fecha_expiracion']}")
-                print(f"📅 Hora actual: {resultado['hora_actual']}")
+                # Hashear la nueva contraseña
+                hashed_password = generate_password_hash(nueva_password)
                 
-                if resultado['fecha_expiracion'] < resultado['hora_actual']:
-                    print("❌ Token expirado")
-                    flash('El enlace ha expirado', 'error')
-                    return redirect(url_for('auth.login'))
+                # Actualizar la contraseña según el tipo de usuario
+                if tipo == 'alumno':
+                    cursor.execute("""
+                        UPDATE alumnos 
+                        SET password = %s, primer_login = FALSE 
+                        WHERE id_alumno = %s
+                    """, (hashed_password, registro['usuario_id']))
+                else:  # admin
+                    cursor.execute("""
+                        UPDATE administrador 
+                        SET password = %s, primer_login = FALSE 
+                        WHERE id_control = %s
+                    """, (hashed_password, registro['usuario_id']))
                 
-                print("✅ Token válido, mostrando formulario")
-                return render_template('recuperar_password.html', token=token, tipo=tipo)
+                # Marcar el token como usado
+                cursor.execute("""
+                    UPDATE recuperacion_password 
+                    SET usado = TRUE 
+                    WHERE token = %s
+                """, (token,))
+                
+                conexion.commit()
+                
+                flash('Contraseña actualizada correctamente. Ya puedes iniciar sesión.', 'success')
+                return redirect(url_for('auth.login'))
                 
         except Exception as e:
-            print(f"Error en verificación: {e}")
+            print(f"Error al actualizar contraseña: {e}")
             import traceback
             traceback.print_exc()
-            flash('Error al verificar el enlace', 'error')
-            return redirect(url_for('auth.login'))
+            conexion.rollback()
+            flash('Error al actualizar la contraseña', 'error')
+            return render_template('recuperar_password.html', token=token, tipo=tipo)
         finally:
             conexion.close()
+    
+    # Manejar GET (mostrar formulario)
+    token = request.args.get('token')
+    tipo = request.args.get('tipo')
+    
+    print(f"🔍 DEBUG - Parámetros recibidos:")
+    print(f"   Token: {token}")
+    print(f"   Tipo: {tipo}")
+    
+    if not token or not tipo:
+        print("❌ Faltan parámetros")
+        flash('Enlace inválido - Faltan parámetros', 'error')
+        return redirect(url_for('auth.login'))
+    
+    conexion = config.conectar_db()
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute("""
+                SELECT *, NOW() as hora_actual 
+                FROM recuperacion_password 
+                WHERE token = %s AND tipo_usuario = %s AND usado = FALSE
+            """, (token, tipo))
+            
+            resultado = cursor.fetchone()
+            
+            if not resultado:
+                print("❌ Token no encontrado o ya usado")
+                cursor.execute("SELECT * FROM recuperacion_password WHERE token = %s", (token,))
+                existe = cursor.fetchone()
+                if existe:
+                    print(f"   Token existe pero usado={existe['usado']}")
+                else:
+                    print("   Token no existe en la tabla")
+                flash('El enlace ha expirado o ya fue utilizado', 'error')
+                return redirect(url_for('auth.login'))
+            
+            if resultado['fecha_expiracion'] < resultado['hora_actual']:
+                print("❌ Token expirado")
+                flash('El enlace ha expirado', 'error')
+                return redirect(url_for('auth.login'))
+            
+            print("✅ Token válido, mostrando formulario")
+            return render_template('recuperar_password.html', token=token, tipo=tipo)
+            
+    except Exception as e:
+        print(f"Error en verificación: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Error al verificar el enlace', 'error')
+        return redirect(url_for('auth.login'))
+    finally:
+        conexion.close()
             
 @auth_bp.route('/check-session')
 def check_session():
