@@ -75,28 +75,6 @@ def convertir_hora_para_input(valor):
         return f"{hours:02d}:{minutes:02d}"
     return str(valor)[:5] if valor else None
 
-# ==================== FUNCIONES DE CORREO ====================
-def enviar_correo(destinatario, asunto, cuerpo_html, cuerpo_texto=None):
-    """Función genérica para enviar correos"""
-    from flask import current_app
-    from flask_mail import Message
-    
-    mail = current_app.extensions.get('mail')
-    if not mail:
-        print("Mail no inicializado")
-        return False
-    
-    try:
-        msg = Message(asunto, recipients=[destinatario])
-        msg.html = cuerpo_html
-        if cuerpo_texto:
-            msg.body = cuerpo_texto
-        mail.send(msg)
-        print(f"✅ Correo enviado a {destinatario}")
-        return True
-    except Exception as e:
-        print(f"❌ Error al enviar correo a {destinatario}: {e}")
-        return False
 
 # ==================== FUNCIONES DE CORREO ====================
 def enviar_correo(destinatario, asunto, cuerpo_html, cuerpo_texto=None):
